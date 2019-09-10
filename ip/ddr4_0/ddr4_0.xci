@@ -292,7 +292,7 @@
         <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.C0.DDR4_CS_SKEW_2">0</spirit:configurableElementValue>
         <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.C0.DDR4_CS_SKEW_3">0</spirit:configurableElementValue>
         <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.C0.DDR4_Capacity">512</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.C0.DDR4_CasLatency">16</spirit:configurableElementValue>
+        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.C0.DDR4_CasLatency">17</spirit:configurableElementValue>
         <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.C0.DDR4_CasWriteLatency">12</spirit:configurableElementValue>
         <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.C0.DDR4_ChipSelect">true</spirit:configurableElementValue>
         <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.C0.DDR4_Clamshell">false</spirit:configurableElementValue>
@@ -383,13 +383,9 @@
           <xilinx:configElementInfos>
             <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.ADDN_UI_CLKOUT1_FREQ_HZ" xilinx:valueSource="user"/>
             <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0.BANK_GROUP_WIDTH" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0.DDR4_CLKOUT0_DIVIDE" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0.DDR4_CasLatency" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0.DDR4_CasWriteLatency" xilinx:valueSource="user"/>
             <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0.DDR4_DataWidth" xilinx:valueSource="user"/>
             <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0.DDR4_InputClockPeriod" xilinx:valueSource="user"/>
             <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0.DDR4_MemoryPart" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0.DDR4_TimePeriod" xilinx:valueSource="user"/>
             <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0_CLOCK_BOARD_INTERFACE" xilinx:valueSource="user"/>
             <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.C0_DDR4_BOARD_INTERFACE" xilinx:valueSource="user"/>
             <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Debug_Signal" xilinx:valueSource="user"/>

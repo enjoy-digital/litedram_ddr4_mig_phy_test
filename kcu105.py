@@ -8,7 +8,7 @@ import sys
 from migen import *
 from migen.genlib.io import CRG
 
-from litex.boards.platforms import kcu105
+import kcu105_platform as kcu105
 
 from litex.soc.cores.uart import UARTWishboneBridge
 

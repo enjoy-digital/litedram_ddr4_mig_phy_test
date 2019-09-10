@@ -40,89 +40,89 @@ class USDDRPHY(Module):
         self.cal_post_status = Signal(9)
         self.tCWL = Signal(6)
 
-#        self.specials += Instance("ddr4_0",
-#            # Clk/Rst ------------------------------------------------------------------------------
-#            i_sys_rst=sys_rst,
-#            i_c0_sys_clk_p=sys_clk.p,
-#            i_c0_sys_clk_n=sys_clk.n,
-#            o_c0_ddr4_ui_clk=self.c0_ddr4_ui_clk,
-#            o_c0_ddr4_ui_clk_sync_rst=self.c0_ddr4_ui_clk_sync_rst,
-#
-#            # DRAM pads ----------------------------------------------------------------------------
-#            o_c0_ddr4_act_n=pads.act_n,
-#            o_c0_ddr4_adr=pads.a,
-#            o_c0_ddr4_ba=pads.ba,
-#            o_c0_ddr4_bg=pads.bg,
-#            o_c0_ddr4_cke=pads.cke,
-#            o_c0_ddr4_odt=pads.odt,
-#            o_c0_ddr4_cs_n=pads.cs_n,
-#            o_c0_ddr4_ck_t=pads.clk_p,
-#            o_c0_ddr4_ck_c=pads.clk_n,
-#            o_c0_ddr4_reset_n=pads.reset_n,
-#            io_c0_ddr4_dm_dbi_n=pads.dm,
-#            io_c0_ddr4_dq=pads.dq,
-#            io_c0_ddr4_dqs_c=pads.dqs_p,
-#            io_c0_ddr4_dqs_t=pads.dqs_n,
-#
-#
-#            # Calibration --------------------------------------------------------------------------
-#            o_c0_init_calib_complete=self.c0_init_calib_complete,
-#
-#            # Debug --------------------------------------------------------------------------------
-#            o_dbg_clk=self.dbg_clk,
-#            o_dbg_rd_data_cmp=self.dbg_rd_data_cmp,
-#            o_dbg_expected_data=self.dbg_expected_data,
-#            o_dbg_cal_seq=self.dbg_cal_seq,
-#            o_dbg_cal_seq_cnt=self.dbg_cal_seq_cnt,
-#            o_dbg_cal_seq_rd_cnt=self.dbg_cal_seq_rd_cnt,
-#            o_dbg_rd_valid=self.dbg_rd_valid,
-#            o_dbg_cmp_byte=self.dbg_cmp_byte,
-#            o_dbg_rd_data=self.dbg_rd_data,
-#            o_dbg_cplx_config=self.dbg_cplx_config,
-#            o_dbg_cplx_status=self.dbg_cplx_status,
-#            o_dbg_io_address=self.dbg_io_address,
-#            o_dbg_pllGate=self.dbg_pllGate,
-#            o_dbg_phy2clb_fixdly_rdy_low=self.dbg_phy2clb_fixdly_rdy_low,
-#            o_dbg_phy2clb_fixdly_rdy_upp=self.dbg_phy2clb_fixdly_rdy_upp,
-#            o_dbg_phy2clb_phy_rdy_low=self.dbg_phy2clb_phy_rdy_low,
-#            o_dbg_phy2clb_phy_rdy_upp=self.dbg_phy2clb_phy_rdy_upp,
-#            o_win_status=self.win_status,
-#            o_cal_r0_status=self.cal_r0_status,
-#            o_cal_post_status=self.cal_post_status,
-#            #o_dbg_bus=,
-#            o_tCWL=self.tCWL,
-#
-#            # ??? ----------------------------------------------------------------------------------
-#            #o_addn_ui_clkout1=,
-#
-#            # Memory Controller Interface ----------------------------------------------------------
-#            i_dBufAdr=0, # Reserved, should be tied to 0
-#            i_wrData=0,
-#            i_wrDataMask=0,
-#            #o_rdData=,
-#            #o_rdDataAddr=,
-#            #o_rdDataEn=,
-#            #o_rdDataEnd=,
-#            #o_per_rd_done=,
-#            #o_rmw_rd_done=,
-#            #o_wrDataAddr=,
-#            #o_wrDataEn=,
-#
-#            i_mc_ACT_n=0b11111111,
-#            i_mc_ADR=0,
-#            i_mc_BA=0,
-#            i_mc_BG=0,
-#            i_mc_CKE=0,
-#            i_mc_CS_n=0b11111111,
-#            i_mc_ODT=0b11111111,
-#            i_mcCasSlot=0,
-#            i_mcCasSlot20=0,
-#            i_mcRdCAS=0,
-#            i_mcWrCAS=0,
-#            i_winInjTxn=0,
-#            i_winRmw=0,
-#            i_gt_data_ready=0,
-#            i_winBuf=0,
-#            i_winRank=0,
-#        )
-        platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
+        self.specials += Instance("ddr4_0",
+            # Clk/Rst ------------------------------------------------------------------------------
+            i_sys_rst=sys_rst,
+            i_c0_sys_clk_p=sys_clk.p,
+            i_c0_sys_clk_n=sys_clk.n,
+            o_c0_ddr4_ui_clk=self.c0_ddr4_ui_clk,
+            o_c0_ddr4_ui_clk_sync_rst=self.c0_ddr4_ui_clk_sync_rst,
+
+            # DRAM pads ----------------------------------------------------------------------------
+            o_c0_ddr4_act_n=pads.act_n,
+            o_c0_ddr4_adr=Cat(pads.a, pads.we_n, pads.cas_n, pads.ras_n),
+            o_c0_ddr4_ba=pads.ba,
+            o_c0_ddr4_bg=pads.bg,
+            o_c0_ddr4_cke=pads.cke,
+            o_c0_ddr4_odt=pads.odt,
+            o_c0_ddr4_cs_n=pads.cs_n,
+            o_c0_ddr4_ck_t=pads.clk_p,
+            o_c0_ddr4_ck_c=pads.clk_n,
+            o_c0_ddr4_reset_n=pads.reset_n,
+            io_c0_ddr4_dm_dbi_n=pads.dm,
+            io_c0_ddr4_dq=pads.dq,
+            io_c0_ddr4_dqs_c=pads.dqs_n,
+            io_c0_ddr4_dqs_t=pads.dqs_p,
+
+
+            # Calibration --------------------------------------------------------------------------
+            o_c0_init_calib_complete=self.c0_init_calib_complete,
+
+            # Debug --------------------------------------------------------------------------------
+            o_dbg_clk=self.dbg_clk,
+            o_dbg_rd_data_cmp=self.dbg_rd_data_cmp,
+            o_dbg_expected_data=self.dbg_expected_data,
+            o_dbg_cal_seq=self.dbg_cal_seq,
+            o_dbg_cal_seq_cnt=self.dbg_cal_seq_cnt,
+            o_dbg_cal_seq_rd_cnt=self.dbg_cal_seq_rd_cnt,
+            o_dbg_rd_valid=self.dbg_rd_valid,
+            o_dbg_cmp_byte=self.dbg_cmp_byte,
+            o_dbg_rd_data=self.dbg_rd_data,
+            o_dbg_cplx_config=self.dbg_cplx_config,
+            o_dbg_cplx_status=self.dbg_cplx_status,
+            o_dbg_io_address=self.dbg_io_address,
+            o_dbg_pllGate=self.dbg_pllGate,
+            o_dbg_phy2clb_fixdly_rdy_low=self.dbg_phy2clb_fixdly_rdy_low,
+            o_dbg_phy2clb_fixdly_rdy_upp=self.dbg_phy2clb_fixdly_rdy_upp,
+            o_dbg_phy2clb_phy_rdy_low=self.dbg_phy2clb_phy_rdy_low,
+            o_dbg_phy2clb_phy_rdy_upp=self.dbg_phy2clb_phy_rdy_upp,
+            o_win_status=self.win_status,
+            o_cal_r0_status=self.cal_r0_status,
+            o_cal_post_status=self.cal_post_status,
+            #o_dbg_bus=,
+            o_tCWL=self.tCWL,
+
+            # ??? ----------------------------------------------------------------------------------
+            #o_addn_ui_clkout1=,
+
+            # Memory Controller Interface ----------------------------------------------------------
+            i_dBufAdr=0, # Reserved, should be tied to 0
+            i_wrData=0,
+            i_wrDataMask=0,
+            #o_rdData=,
+            #o_rdDataAddr=,
+            #o_rdDataEn=,
+            #o_rdDataEnd=,
+            #o_per_rd_done=,
+            #o_rmw_rd_done=,
+            #o_wrDataAddr=,
+            #o_wrDataEn=,
+
+            i_mc_ACT_n=0b11111111,
+            i_mc_ADR=0,
+            i_mc_BA=0,
+            i_mc_BG=0,
+            i_mc_CKE=0,
+            i_mc_CS_n=0b11111111,
+            i_mc_ODT=0b11111111,
+            i_mcCasSlot=0,
+            i_mcRdCAS=0,
+            i_mcWrCAS=0,
+            i_winInjTxn=0,
+            i_winRmw=0,
+            i_gt_data_ready=0,
+            i_winBuf=0,
+            i_winRank=0,
+        )
+        platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
+        #platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
