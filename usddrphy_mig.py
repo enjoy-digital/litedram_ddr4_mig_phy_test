@@ -106,8 +106,8 @@ class USDDRPHY(Module):
             o_tCWL=self.tCWL,
 
             # PHY Commands -------------------------------------------------------------------------
-            i_winRank=self.winRank,
-            i_winBuf=self.winBuf,
+            i_winRank=0,
+            i_winBuf=0,
             i_mc_ACT_n=0b11111111,
             i_mc_ADR=0,
             i_mc_BA=0,
@@ -124,10 +124,8 @@ class USDDRPHY(Module):
             #o_wrDataEn=,
 
             # PHY Reads ----------------------------------------------------------------------------
-            o_rdData=,
-            o_rdDataEn=,
+            #o_rdData=,
+            #o_rdDataEn=,
         )
-        platform.add_source(os.path.join("ip", "ddrx_cal_mc_odt.sv"))
-        platform.add_source(os.path.join("ip", "example_tb_phy.sv"))
-        platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
-        #platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
+        #platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
+        platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))

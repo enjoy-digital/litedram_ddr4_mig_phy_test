@@ -45,12 +45,12 @@ class DDR4TestSoC(SoCMini):
         self.add_csr("ddr4_debug_clk_freq")
 
         # Leds -------------------------------------------------------------------------------------
-        self.comb += platform.request("user_led", 0).eq(ddr4_phy.c0_init_calib_complete)
+        self.comb += platform.request("user_led", 0).eq(ddr4_phy.init_calib_complete)
 
         # Analyzer ---------------------------------------------------------------------------------
         if with_analyzer:
             analyzer_signals = [
-                ddr4_phy.c0_init_calib_complete,         # Signifies the status of calibration
+                ddr4_phy.init_calib_complete,            # Signifies the status of calibration
                 ddr4_phy.dbg_rd_data_cmp,                # Comparison of dbg_rd_data and dbg_expected_data
                 ddr4_phy.dbg_expected_data,              # Displays the expected data during calibration stages that use fabric-based data pattern comparison such as Read per
                 ddr4_phy.dbg_cal_seq,                    # Calibration sequence indicator, when RTL is issuing commands to the DRAM.
