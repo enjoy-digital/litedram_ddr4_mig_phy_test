@@ -13,13 +13,9 @@ class USDDRPHY(Module):
 
         self.init_calib_complete = Signal()
 
-        self.clock_domains.cd_ddr4 = ClockDomain()
-        self.clock_domains.cd_ddr4_debug = ClockDomain()
+        rst    = platform.request("cpu_reset")
+        clk300 = platform.request("clk300")
 
-        sys_rst = platform.request("cpu_reset")
-        sys_clk = platform.request("clk300")
-
-        self.dbg_clk = Signal()
         self.dbg_rd_data_cmp = Signal(64)
         self.dbg_expected_data = Signal(64)
         self.dbg_cal_seq = Signal(3)
@@ -45,11 +41,11 @@ class USDDRPHY(Module):
 
         self.specials += Instance("ddr4_0",
             # Clk/Rst ------------------------------------------------------------------------------
-            i_sys_rst=sys_rst,
-            i_c0_sys_clk_p=sys_clk.p,
-            i_c0_sys_clk_n=sys_clk.n,
-            o_c0_ddr4_ui_clk=ClockSignal("ddr4"),
-            o_c0_ddr4_ui_clk_sync_rst=ResetSignal("ddr4"),
+            i_sys_rst=rst,
+            i_c0_sys_clk_p=clk300.p,
+            i_c0_sys_clk_n=clk300.n,
+            o_c0_ddr4_ui_clk=ClockSignal("sys"),
+            o_c0_ddr4_ui_clk_sync_rst=ResetSignal("sys"),
 
             # DRAM pads ----------------------------------------------------------------------------
             o_c0_ddr4_act_n=pads.act_n,
@@ -71,7 +67,7 @@ class USDDRPHY(Module):
             o_c0_init_calib_complete=self.init_calib_complete,
 
             # Debug --------------------------------------------------------------------------------
-            o_dbg_clk=ClockSignal("ddr4_debug"),
+            #o_dbg_clk=,
             o_dbg_rd_data_cmp=self.dbg_rd_data_cmp,
             o_dbg_expected_data=self.dbg_expected_data,
             o_dbg_cal_seq=self.dbg_cal_seq,
@@ -127,5 +123,5 @@ class USDDRPHY(Module):
             #o_rdData=,
             #o_rdDataEn=,
         )
-        #platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
-        platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
+        platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
+        #platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))

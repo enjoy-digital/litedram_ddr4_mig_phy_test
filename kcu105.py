@@ -23,12 +23,12 @@ from usddrphy_mig import USDDRPHY
 # DDR4TestSoC --------------------------------------------------------------------------------------
 
 class DDR4TestSoC(SoCMini):
-    def __init__(self, sys_clk_freq=int(125e6), with_analyzer=False, **kwargs):
+    def __init__(self, sys_clk_freq=int(200e6), with_analyzer=False, **kwargs):
         platform = kcu105.Platform()
         SoCMini.__init__(self, platform, clk_freq=sys_clk_freq, ident="DDR4TestSoC", ident_version=True)
 
         # CRG --------------------------------------------------------------------------------------
-        self.submodules.crg = CRG(platform.request("clk125"))
+        self.clock_domains.cd_sys = ClockDomain()
 
         # Serial Bridge ----------------------------------------------------------------------------
         self.submodules.serial_bridge = UARTWishboneBridge(platform.request("serial"), sys_clk_freq)
@@ -36,13 +36,6 @@ class DDR4TestSoC(SoCMini):
 
         # DDR4 PHY ---------------------------------------------------------------------------------
         self.submodules.ddr4_phy = ddr4_phy = USDDRPHY(platform, platform.request("ddram"))
-
-        # Frequency measurements -------------------------------------------------------------------
-        self.submodules.ddr4_clk_freq = FrequencyMeter(sys_clk_freq, clk=ClockSignal("ddr4"))
-        self.add_csr("ddr4_clk_freq")
-
-        self.submodules.ddr4_debug_clk_freq = FrequencyMeter(sys_clk_freq, clk=ClockSignal("ddr4_debug"))
-        self.add_csr("ddr4_debug_clk_freq")
 
         # Leds -------------------------------------------------------------------------------------
         self.comb += platform.request("user_led", 0).eq(ddr4_phy.init_calib_complete)
@@ -74,15 +67,6 @@ class DDR4TestSoC(SoCMini):
             ]
             self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 128, csr_csv="analyzer.csv")
             self.add_csr("analyzer")
-
-        # False paths ------------------------------------------------------------------------------
-        self.crg.cd_sys.clk.attr.add("keep")
-        self.ddr4_phy.cd_ddr4.clk.attr.add("keep")
-        self.ddr4_phy.cd_ddr4_debug.clk.attr.add("keep")
-        platform.add_false_path_constraints(
-            self.crg.cd_sys.clk,
-            self.ddr4_phy.cd_ddr4.clk,
-            self.ddr4_phy.cd_ddr4_debug.clk)
 
 # Build --------------------------------------------------------------------------------------------
 

@@ -20,11 +20,6 @@ for i in range(256):
         break
 print("FPGA: " + fpga_id)
 
-# Frequency checks ---------------------------------------------------------------------------------
-
-print("DDR4 freq: {:3.2f} MHz".format(wb.regs.ddr4_clk_freq_value.read()/1e6))
-print("DDR4 debug freq: {:3.2f} MHz".format(wb.regs.ddr4_debug_clk_freq_value.read()/1e6))
-
 # Analyzer dump ------------------------------------------------------------------------------------
 if hasattr(wb.regs, "analyzer"):
 	print("true")
