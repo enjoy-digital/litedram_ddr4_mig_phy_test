@@ -58,27 +58,27 @@
 // Device           : UltraScale
 // Design Name      : DDR4 SDRAM PHY EXAMPLE TB
 // Purpose          : This is an  example test-bench that shows how to interface
-//                    to the PHY. This example works for DDR4 PHY generated from 
-//                    MIG. 
-//                    This module waits for the calibration complete 
+//                    to the PHY. This example works for DDR4 PHY generated from
+//                    MIG.
+//                    This module waits for the calibration complete
 //                    (init_calib_complete) to pass the traffic to the PHY.
 //
 //                    This TB generates 10 write transactions
 //                    followed by 10 read transactions to the PHY.
-//                    Checks if the data that is read back from the 
+//                    Checks if the data that is read back from the
 //                    memory is correct. After 10 writes and reads, no other
 //                    commands will be issued by this TG.
 //
-//                    All READ and WRITE transactions in this example TB are of 
+//                    All READ and WRITE transactions in this example TB are of
 //                    DDR4 BURST LENGTH (BL) 8. In a single clock cycle 1 BL8
 //                    transaction will be generated.
 //
-//                    The fabric to DRAM clock ratio is 4:1. In each fabric 
-//                    clock cycle 8 beats of data will be written during 
-//                    WRITE transactions and 8 beats of data will be received 
+//                    The fabric to DRAM clock ratio is 4:1. In each fabric
+//                    clock cycle 8 beats of data will be written during
+//                    WRITE transactions and 8 beats of data will be received
 //                    during READ transactions.
 //
-//                    In this example TB: All the commands are issued for 
+//                    In this example TB: All the commands are issued for
 //                    one slot only.
 //
 // Reference        :
@@ -90,7 +90,7 @@
 module example_tb_phy #
   (
   parameter SIMULATION       = "FALSE",   // This parameter must be
-                                          // TRUE for simulations and 
+                                          // TRUE for simulations and
                                           // FALSE for implementation.
                                           //
    parameter integer ADDR_WIDTH           = 17, // Address bus width
@@ -98,21 +98,21 @@ module example_tb_phy #
    parameter integer BANK_GROUP_WIDTH     = 1,  // Bank group width
    parameter integer CS_WIDTH             = 1,  // Chip select width
    parameter integer ODT_WIDTH            = 1,  // ODT width
-   parameter integer DQ_WIDTH             = 32, // Data bus width
-   parameter integer DM_WIDTH             = 4,  // Data Mask width
+   parameter integer DQ_WIDTH             = 64, // Data bus width
+   parameter integer DM_WIDTH             = 8,  // Data Mask width
    parameter integer CWL                  = 10,  // CAS Write Latency
    parameter integer NUM_RANK             = 1,
    parameter integer NUM_SLOT             = 1,
    parameter integer DATA_BUF_ADDR_WIDTH  = 5,  // Data buffer address width
 
-   parameter ODTWR                        = 16'h8421,
-   parameter ODTWRDEL                     = 5'd9
+   parameter ODTWR                        = 16'h0021,
+   parameter ODTWRDEL                     = 5'd12
             ,ODTWRDUR                     = 4'd6
             ,ODTWRODEL                    = 5'd9
             ,ODTWRODUR                    = 4'd6
 
             ,ODTRD                        = 16'h0000
-            ,ODTRDDEL                     = 5'd9
+            ,ODTRDDEL                     = 5'd17
             ,ODTRDDUR                     = 4'd6
             ,ODTRDODEL                    = 5'd9
             ,ODTRDODUR                    = 4'd6
@@ -132,10 +132,10 @@ module example_tb_phy #
    output reg          [DQ_WIDTH*8-1:0]  wrData,    // DRAM write data.
                                                     // There are 8 bits for each DQ lane on the DRAM bus.
                                                     //
-   output reg          [DM_WIDTH*8-1:0]  wrDataMask,// DRAM write DM/DBI port.  
+   output reg          [DM_WIDTH*8-1:0]  wrDataMask,// DRAM write DM/DBI port.
                                                     // There is one bit for each byte of the wrData port.
                                                     //
-   input                                 wrDataEn,  // Write data Enable. 
+   input                                 wrDataEn,  // Write data Enable.
                                                     // The Phy will assert this port for one cycle for each write CAS command.
                                                     //
    output reg                     [7:0]  mc_ACT_n,  // DRAM ACT_n command signal for four DRAM clock cycles.
@@ -143,7 +143,7 @@ module example_tb_phy #
    output reg        [ADDR_WIDTH*8-1:0]  mc_ADR,    // DRAM address.
                                                     // There are 8 bits in the fabric interface for each address bit on the DRAM bus.
                                                     //
-   output reg        [BANK_WIDTH*8-1:0]  mc_BA,     // DRAM bank address. 
+   output reg        [BANK_WIDTH*8-1:0]  mc_BA,     // DRAM bank address.
                                                     // 8 bits for each DRAM bank address.
                                                     //
    output reg  [BANK_GROUP_WIDTH*8-1:0]  mc_BG,     // DRAM bank group address.
@@ -158,33 +158,33 @@ module example_tb_phy #
    output reg                            mcRdCAS,   // Read CAS command issued.
                                                     //
    output reg                            mcWrCAS,   // Write CAS command issued.
-                                                    // 
-   output reg                     [1:0]  winRank,   // Target rank for CAS commands. 
-                                                    // This value indicates which rank a CAS command is issued to. 
                                                     //
-   output reg                     [4:0]  winBuf,    // Optional control signal.  
-                                                    // When either mcRdCAS or mcWrCAS is asserted, 
-                                                    // the Phy will store the value on the winBuf signal.  
+   output reg                     [1:0]  winRank,   // Target rank for CAS commands.
+                                                    // This value indicates which rank a CAS command is issued to.
                                                     //
-   input            [DQ_WIDTH*8-1:0]     rdData,    // DRAM read data. 
+   output reg                     [4:0]  winBuf,    // Optional control signal.
+                                                    // When either mcRdCAS or mcWrCAS is asserted,
+                                                    // the Phy will store the value on the winBuf signal.
+                                                    //
+   input            [DQ_WIDTH*8-1:0]     rdData,    // DRAM read data.
                                                     // There are 8 bits for each DQ lane on the DRAM bus.
                                                     //
-   input                                 rdDataEn,  // Read data valid. 
+   input                                 rdDataEn,  // Read data valid.
                                                     // This signal asserts for one fabric cycle for each completed read operation.
                                                     //
    input                                 rdDataEnd, // Unused.  Tied high.
                                                     //
    output                                compare_error, // Memory READ_DATA and example TB
                                                        // WRITE_DATA compare error.
-                                                  
-   output                                wr_rd_complete                                              
+
+   output                                wr_rd_complete
 
 
   );
 
 //*****************************************************************************
-// Fixed constant parameters. 
-// DO NOT CHANGE these values. 
+// Fixed constant parameters.
+// DO NOT CHANGE these values.
 // As they are meant to be fixed to those values by design.
 //*****************************************************************************
 localparam BEGIN_ADDRESS  = 20'h01000; // This is the starting address from
@@ -194,14 +194,14 @@ localparam NUM_WRITES = (NUM_TRANSACT/2) ;// Total Number of WRITE transactions
 localparam NUM_READS  = (NUM_TRANSACT/2) ;// Total Number of READ transactions
 localparam TCQ = 100; // To model the clock to out delay
 
-localparam INT_DATA_WIDTH  = 16 ;// Internal data width for write and read data.  
+localparam INT_DATA_WIDTH  = 16 ;// Internal data width for write and read data.
                               // set to 16 bit. Data generation is always 2 bytes
                         // For higher data widths the 16-bit data is duplicated.
 
 //************************
 // Instruction encoding
 //************************
-// encoding for the different states in the WRITE/READ Transaction generation 
+// encoding for the different states in the WRITE/READ Transaction generation
 // state machine
 localparam IDLE       = 4'b0000;
 localparam ACTIVATE   = 4'b0001;
@@ -220,11 +220,11 @@ reg [9 :0]                      cmd_cnt ;          // Command count
 reg [9 :0]                      wr_to_rd_dly_cnt ; // Write to read command delay count
 reg                             cmd_en;            // Command enable
 reg                             compare_error_int; // Compare error
-reg                             compare_error_r1;  // Registered version of 
+reg                             compare_error_r1;  // Registered version of
                                                    // compare_error
 wire [DQ_WIDTH*8-1:0]           exp_rd_data;       // Expected read data
 reg                     [31:0]  exp_rd_data_int;   // Internal Expected read data
-reg                             init_calib_complete_r; // Registered version of 
+reg                             init_calib_complete_r; // Registered version of
                                                        // init_calib_complete
 reg [DQ_WIDTH*8-1 : 0]          rdData_r1;         // Registered version of read data
 reg                             rdDataEn_r1;       // Registered version of read data enable
@@ -242,7 +242,7 @@ always @ (posedge clk)
   init_calib_complete_r <= #TCQ init_calib_complete;
 
 //*****************************************************************************
-//Registering wrDataEn to provide wrData at the Phy input ports 
+//Registering wrDataEn to provide wrData at the Phy input ports
 //on the cycle after wrDataEn asserts.
 //*****************************************************************************
 always @ (posedge clk)
@@ -254,7 +254,7 @@ always @ (posedge clk)
 // The cmd_addr signal is the command address issued to the PHY.
 // In this example TB, LSB is the COLUMN ADDRESS bits.
 // The LSB 3-bits will be reserved for BL8 COLUMN address increments.
-// The cmd_addr is initialised to BEGIN_ADDRESS and 
+// The cmd_addr is initialised to BEGIN_ADDRESS and
 // incremented by 8(`h8) when state is WRITE or READ
 // to increment the COLUMN address.
 // The cmd_addr is initialized with BEGIN_ADDRESS when write commands
@@ -278,7 +278,7 @@ end
      else if (state == WRITE || state == READ)
       // The cmd_cnt value is 10 when it completes 10 write transactions.
       // The cmd_addr is initialized with BEGIN_ADDRESS when write commands
-      // are completed (cmd_cnt = 9) to start the read commands.  
+      // are completed (cmd_cnt = 9) to start the read commands.
       if (cmd_cnt == NUM_WRITES-1)
         addr_gen <= #TCQ BEGIN_ADDRESS;
       else
@@ -301,14 +301,14 @@ end
 //
 // The data has to be provided in the following format:
 // FALL3->RISE3->FALL2->RISE2->FALL1->RISE1->FALL0->RISE0
-// 
+//
 // For a 16 bit interface, 16 * 8 = 128 bits of data will be provided in the
-// each clock cycle. LSB 16-bits corresponds to RISE0 and MSB 16-bits 
+// each clock cycle. LSB 16-bits corresponds to RISE0 and MSB 16-bits
 // corresponds to FALL3.
 //
 // The wrData is initialised to zero and
 // increments by 8(`h8) when wrDataEn_r is '1' to generate the write data.
-// 
+//
 //*****************************************************************************
 //Data duplication
 assign wrData   = {((DQ_WIDTH*8)/INT_DATA_WIDTH){wdf_data}};
@@ -327,31 +327,31 @@ assign wrData   = {((DQ_WIDTH*8)/INT_DATA_WIDTH){wdf_data}};
 //*****************************************************************************
 //  WRITE/READ Transaction generation state machine:
 //
-//  This state machine generates the PHY interface signals for 
+//  This state machine generates the PHY interface signals for
 //  10 writes followed by 10 reads transactions.
 //
-//  This state machine logic controls the read-write operations after 
+//  This state machine logic controls the read-write operations after
 //  calibration is done.
-//  
+//
 //  The state machine stay in IDLE state until calibration is complete.
 //
 //  The state machine enter into ACTIVATE state after IDLE state when
 //  calibration is completed. (init_calib_complete_r signal is '1')
 //
-//  The state machine enter into ACT_WAIT state in the next clock cycle 
+//  The state machine enter into ACT_WAIT state in the next clock cycle
 //  after ACTIVATE state.
 //
 //  The state machine enter into WRITE state after ACT_WAIT state
-//  when act_wait_cnt counter reaches the value of 10 to make sure that 
+//  when act_wait_cnt counter reaches the value of 10 to make sure that
 //  ACTIVATE command is processed.
 //
-//  The state machine enter into WRITE_WAIT state in the next clock cycle 
-//  after WRITE state to provide extra one clock cycle delay to meet 
+//  The state machine enter into WRITE_WAIT state in the next clock cycle
+//  after WRITE state to provide extra one clock cycle delay to meet
 //  tCCD_L timing parameter until all WRITE commands are completed.
 //
-//  The state machine enter into WRITE state in the next clock cycle 
+//  The state machine enter into WRITE state in the next clock cycle
 //  after WRITE_WAIT state.
-//  
+//
 //  The state machine enter into WR_RD_WAIT state after WRITE state
 //  when all the WRITE commands are completed.
 //
@@ -361,8 +361,8 @@ assign wrData   = {((DQ_WIDTH*8)/INT_DATA_WIDTH){wdf_data}};
 //  The state machine enter into READ state after WR_RD_WAIT state
 //  when wr_to_rd_dly_cnt counter reaches the value of 10.
 //
-//  The state machine enter into READ_WAIT state in the next clock cycle 
-//  after READ state to provide extra one clock cycle delay to meet 
+//  The state machine enter into READ_WAIT state in the next clock cycle
+//  after READ state to provide extra one clock cycle delay to meet
 //  tCCD_L timing parameter until all READ commands are completed.
 //
 //  The state machine enter into DONE state after READ state
@@ -396,7 +396,7 @@ begin
     state     <= #TCQ IDLE;
   end else begin
     casez (state)
-      
+
       // ----------------------------------------------------------------
       IDLE: begin
       // ----------------------------------------------------------------
@@ -455,7 +455,7 @@ begin
       // ----------------------------------------------------------------
         if (cmd_cnt < NUM_WRITES)
           state      <= #TCQ WRITE;
-        else 
+        else
           state      <= #TCQ WR_RD_WAIT;
         mc_ACT_n       <= #TCQ 8'hFF;
         mc_CS_n        <= #TCQ {CS_WIDTH*8{1'b1}};
@@ -488,7 +488,7 @@ begin
       // ----------------------------------------------------------------
         if (cmd_cnt < (NUM_TRANSACT-1))
           state      <= #TCQ READ_WAIT;
-        else 
+        else
           state      <= #TCQ DONE;
 
         mc_CS_n[7:0]    <= #TCQ 8'hFC;
@@ -562,8 +562,8 @@ end
 
 //*****************************************************************************
 //  Command Counter :
-//      This command counter counts the number of commands issued to the 
-//      PHY. 
+//      This command counter counts the number of commands issued to the
+//      PHY.
 //*****************************************************************************
 always @(posedge clk )
 begin
@@ -597,9 +597,9 @@ assign dBufAdr   = 5'b0 ;
 
 //*****************************************************************************
 // Expected Read data generation:
-// 
+//
 // The expected read data (exp_rd_data_int) is initialised to zero and
-// increments by 8(`h8) when rdDataEn is '1' to generate the read data. 
+// increments by 8(`h8) when rdDataEn is '1' to generate the read data.
 //
 // The read data from the PHY interface is valid when ever the
 // rdDataEn signal is asserted to '1'.
@@ -628,8 +628,8 @@ end
 
 //*****************************************************************************
 // Read data comparison:
-// The compare error (compare_error_int) signal is asserted when the 
-// expected read data (exp_rd_data) is not matching with the data 
+// The compare error (compare_error_int) signal is asserted when the
+// expected read data (exp_rd_data) is not matching with the data
 // read from the PHY interface.
 //*****************************************************************************
 assign compare_error  = compare_error_r1;
@@ -679,7 +679,7 @@ end
 //*******************************************************************************
 //*******************************************************************************
 //  Read Counter :
-//      This Read counter counts the number of rdDataEn issued by the 
+//      This Read counter counts the number of rdDataEn issued by the
 //      PHY Interface and generates a pulse (wr_rd_complete) when the number of
 //      consequent rdDataEn becomes equal to the 10 .
 //      This wr_rd_complete is used only for simulation to finish.

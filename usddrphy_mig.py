@@ -40,6 +40,53 @@ class USDDRPHY(Module):
         self.cal_post_status = Signal(9)
         self.tCWL = Signal(6)
 
+        self.dBufAdr = Signal(5)
+        self.wrData = Signal(512)
+        self.wrDataMask = Signal(64)
+        self.wrDataEn = Signal()
+        self.mc_ACT_n = Signal(8)
+        self.mc_ADR = Signal(136)
+        self.mc_BA = Signal(16)
+        self.mc_BG = Signal(8)
+        self.mc_CS_n = Signal(8)
+        self.mc_ODT = Signal(8)
+        self.mcRdCAS = Signal()
+        self.mcWrCAS = Signal()
+        self.winRank = Signal(2)
+        self.winBuf = Signal(5)
+        self.rdData = Signal(512)
+        self.rdDataEn = Signal()
+        self.rdDataEnd = Signal()
+        self.compare_error = Signal()
+        self.wr_rd_complete = Signal()
+
+        # # #
+
+        self.specials += Instance("example_tb_phy",
+            i_clk=self.c0_ddr4_ui_clk,
+            i_rst=self.c0_ddr4_ui_clk_sync_rst,
+            i_init_calib_complete=self.c0_init_calib_complete,
+            o_dBufAdr=self.dBufAdr,
+            o_wrData=self.wrData,
+            o_wrDataMask=self.wrDataMask,
+            i_wrDataEn=self.wrDataEn,
+            o_mc_ACT_n=self.mc_ACT_n,
+            o_mc_ADR=self.mc_ADR,
+            o_mc_BA=self.mc_BA,
+            o_mc_BG=self.mc_BG,
+            o_mc_CS_n=self.mc_CS_n,
+            o_mc_ODT=self.mc_ODT,
+            o_mcRdCAS=self.mcRdCAS,
+            o_mcWrCAS=self.mcWrCAS,
+            o_winRank=self.winRank,
+            o_winBuf=self.winBuf,
+            i_rdData=self.rdData,
+            i_rdDataEn=self.rdDataEn,
+            i_rdDataEnd=self.rdDataEnd,
+            o_compare_error=self.compare_error,
+            o_wr_rd_complete=self.wr_rd_complete,
+        )
+
         self.specials += Instance("ddr4_0",
             # Clk/Rst ------------------------------------------------------------------------------
             i_sys_rst=sys_rst,
@@ -96,33 +143,34 @@ class USDDRPHY(Module):
             #o_addn_ui_clkout1=,
 
             # Memory Controller Interface ----------------------------------------------------------
-            i_dBufAdr=0, # Reserved, should be tied to 0
-            i_wrData=0,
-            i_wrDataMask=0,
-            #o_rdData=,
+            i_dBufAdr=self.dBufAdr,
+            i_wrData=self.wrData,
+            i_wrDataMask=self.wrDataMask,
+            o_wrDataEn=self.wrDataEn,
+            i_mc_ACT_n=self.mc_ACT_n,
+            i_mc_ADR=self.mc_ADR,
+            i_mc_BA=self.mc_BA,
+            i_mc_BG=self.mc_BG,
+            i_mc_CS_n=self.mc_CS_n,
+            i_mc_ODT=self.mc_ODT,
+            i_mcRdCAS=self.mcRdCAS,
+            i_mcWrCAS=self.mcWrCAS,
+            i_winRank=self.winRank,
+            i_winBuf=self.winBuf,
+            o_rdData=self.rdData,
+            o_rdDataEn=self.rdDataEn,
+            o_rdDataEnd=self.rdDataEnd,
+
             #o_rdDataAddr=,
-            #o_rdDataEn=,
-            #o_rdDataEnd=,
             #o_per_rd_done=,
             #o_rmw_rd_done=,
-            #o_wrDataAddr=,
-            #o_wrDataEn=,
-
-            i_mc_ACT_n=0b11111111,
-            i_mc_ADR=0,
-            i_mc_BA=0,
-            i_mc_BG=0,
-            i_mc_CKE=0,
-            i_mc_CS_n=0b11111111,
-            i_mc_ODT=0b11111111,
+            i_mc_CKE=0b11111111,
             i_mcCasSlot=0,
-            i_mcRdCAS=0,
-            i_mcWrCAS=0,
             i_winInjTxn=0,
             i_winRmw=0,
             i_gt_data_ready=0,
-            i_winBuf=0,
-            i_winRank=0,
         )
-        platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
-        #platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
+        platform.add_source(os.path.join("ip", "ddrx_cal_mc_odt.sv"))
+        platform.add_source(os.path.join("ip", "example_tb_phy.sv"))
+        #platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
+        platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
