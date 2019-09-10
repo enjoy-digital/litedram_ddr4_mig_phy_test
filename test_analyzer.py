@@ -11,6 +11,7 @@ wb.open()
 
 # # #
 
+# FPGA ID ------------------------------------------------------------------------------------------
 fpga_id = ""
 for i in range(256):
     c = chr(wb.read(wb.bases.identifier_mem + 4*i) & 0xff)
@@ -18,6 +19,10 @@ for i in range(256):
     if c == "\0":
         break
 print("FPGA: " + fpga_id)
+
+# Frequency checks ---------------------------------------------------------------------------------
+
+# Frequency checks ---------------------------------------------------------------------------------
 
 analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
 analyzer.configure_group(0)

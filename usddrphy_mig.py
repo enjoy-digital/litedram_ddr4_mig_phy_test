@@ -11,7 +11,8 @@ class USDDRPHY(Module):
 
         # # #
 
-        self.clock_domains.cd_dbg = ClockDomain()
+        self.clock_domains.cd_ddr4 = ClockDomain()
+        self.clock_domains.cd_ddr4_debug = ClockDomain()
 
         sys_rst = platform.request("cpu_reset")
         sys_clk = platform.request("clk300")
@@ -65,8 +66,8 @@ class USDDRPHY(Module):
         # # #
 
         self.specials += Instance("example_tb_phy",
-            i_clk=self.c0_ddr4_ui_clk,
-            i_rst=self.c0_ddr4_ui_clk_sync_rst,
+            i_clk=ClockSignal("ddr4"),
+            i_rst=ResetSignal("ddr4"),
             i_init_calib_complete=self.c0_init_calib_complete,
             o_dBufAdr=self.dBufAdr,
             o_wrData=self.wrData,
@@ -94,8 +95,8 @@ class USDDRPHY(Module):
             i_sys_rst=sys_rst,
             i_c0_sys_clk_p=sys_clk.p,
             i_c0_sys_clk_n=sys_clk.n,
-            o_c0_ddr4_ui_clk=self.c0_ddr4_ui_clk,
-            o_c0_ddr4_ui_clk_sync_rst=self.c0_ddr4_ui_clk_sync_rst,
+            o_c0_ddr4_ui_clk=ClockSignal("ddr4"),
+            o_c0_ddr4_ui_clk_sync_rst=ResetSignal("ddr4"),
 
             # DRAM pads ----------------------------------------------------------------------------
             o_c0_ddr4_act_n=pads.act_n,
@@ -113,12 +114,11 @@ class USDDRPHY(Module):
             io_c0_ddr4_dqs_c=pads.dqs_n,
             io_c0_ddr4_dqs_t=pads.dqs_p,
 
-
             # Calibration --------------------------------------------------------------------------
             o_c0_init_calib_complete=self.c0_init_calib_complete,
 
             # Debug --------------------------------------------------------------------------------
-            o_dbg_clk=ClockSignal("dbg"),
+            o_dbg_clk=ClockSignal("ddr4_debug"),
             o_dbg_rd_data_cmp=self.dbg_rd_data_cmp,
             o_dbg_expected_data=self.dbg_expected_data,
             o_dbg_cal_seq=self.dbg_cal_seq,
@@ -138,14 +138,23 @@ class USDDRPHY(Module):
             o_win_status=self.win_status,
             o_cal_r0_status=self.cal_r0_status,
             o_cal_post_status=self.cal_post_status,
+
+            # PHY Statics / Optionals --------------------------------------------------------------
+            i_dBufAdr=0,
+            o_rdDataAddr=Signal(5),
+            o_per_rd_done=Signal(),
+            o_rmw_rd_done=Signal(),
+            i_mcCasSlot=0,
+            i_mcCasSlot2=0,
+            i_winRank=self.winRank,
+            i_winBuf=self.winBuf,
+            i_winInjTxn=0,
+            i_winRmw=0,
+            i_gt_data_ready=0,
             o_dbg_bus=Signal(512),
             o_tCWL=self.tCWL,
 
-            # Memory Controller Interface ----------------------------------------------------------
-            i_dBufAdr=self.dBufAdr,
-            i_wrData=self.wrData,
-            i_wrDataMask=self.wrDataMask,
-            o_wrDataEn=self.wrDataEn,
+            # PHY Commands -------------------------------------------------------------------------
             i_mc_ACT_n=self.mc_ACT_n,
             i_mc_ADR=self.mc_ADR,
             i_mc_BA=self.mc_BA,
@@ -154,21 +163,17 @@ class USDDRPHY(Module):
             i_mc_ODT=self.mc_ODT,
             i_mcRdCAS=self.mcRdCAS,
             i_mcWrCAS=self.mcWrCAS,
-            i_winRank=self.winRank,
-            i_winBuf=self.winBuf,
+            i_mc_CKE=0b11111111,
+
+            # PHY Writes ---------------------------------------------------------------------------
+            i_wrData=self.wrData,
+            i_wrDataMask=self.wrDataMask,
+            o_wrDataEn=self.wrDataEn,
+
+            # PHY Reads ----------------------------------------------------------------------------
             o_rdData=self.rdData,
             o_rdDataEn=self.rdDataEn,
             o_rdDataEnd=self.rdDataEnd,
-
-            o_rdDataAddr=Signal(5),
-            o_per_rd_done=Signal(),
-            o_rmw_rd_done=Signal(),
-            i_mc_CKE=0b11111111,
-            i_mcCasSlot=0,
-            i_mcCasSlot2=0,
-            i_winInjTxn=0,
-            i_winRmw=0,
-            i_gt_data_ready=0,
         )
         platform.add_source(os.path.join("ip", "ddrx_cal_mc_odt.sv"))
         platform.add_source(os.path.join("ip", "example_tb_phy.sv"))
