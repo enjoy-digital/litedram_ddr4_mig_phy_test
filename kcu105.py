@@ -36,11 +36,8 @@ class DDR4TestSoC(SoCMini):
             Signal(2),
             Signal(2),
         ]
-        self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 128, clock_domain="sys")
+        self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 128, csr_csv="analyzer.csv")
         self.add_csr("analyzer")
-
-    def do_exit(self, vns):
-        self.analyzer.export_csv(vns, "analyzer.csv")
 
 # Build --------------------------------------------------------------------------------------------
 
@@ -51,8 +48,8 @@ def main():
         prog.load_bitstream("build/gateware/top.bit")
     else:
         soc = DDR4TestSoC()
-        builder = Builder(soc, output_dir="build", csr_csv="csr.csv", compile_gateware=True)
-        builder.build()
+        builder = Builder(soc, output_dir="build", csr_csv="csr.csv", compile_gateware=False)
+        vns = builder.build()
 
 if __name__ == "__main__":
     main()
