@@ -11,15 +11,13 @@ class USDDRPHY(Module):
 
         # # #
 
+        self.init_calib_complete = Signal()
+
         self.clock_domains.cd_ddr4 = ClockDomain()
         self.clock_domains.cd_ddr4_debug = ClockDomain()
 
         sys_rst = platform.request("cpu_reset")
         sys_clk = platform.request("clk300")
-
-        self.c0_ddr4_ui_clk = Signal()
-        self.c0_ddr4_ui_clk_sync_rst = Signal()
-        self.c0_init_calib_complete = Signal()
 
         self.dbg_clk = Signal()
         self.dbg_rd_data_cmp = Signal(64)
@@ -43,52 +41,7 @@ class USDDRPHY(Module):
         self.cal_post_status = Signal(9)
         self.tCWL = Signal(6)
 
-        self.dBufAdr = Signal(5)
-        self.wrData = Signal(512)
-        self.wrDataMask = Signal(64)
-        self.wrDataEn = Signal()
-        self.mc_ACT_n = Signal(8)
-        self.mc_ADR = Signal(136)
-        self.mc_BA = Signal(16)
-        self.mc_BG = Signal(8)
-        self.mc_CS_n = Signal(8)
-        self.mc_ODT = Signal(8)
-        self.mcRdCAS = Signal()
-        self.mcWrCAS = Signal()
-        self.winRank = Signal(2)
-        self.winBuf = Signal(5)
-        self.rdData = Signal(512)
-        self.rdDataEn = Signal()
-        self.rdDataEnd = Signal()
-        self.compare_error = Signal()
-        self.wr_rd_complete = Signal()
-
         # # #
-
-        self.specials += Instance("example_tb_phy",
-            i_clk=ClockSignal("ddr4"),
-            i_rst=ResetSignal("ddr4"),
-            i_init_calib_complete=self.c0_init_calib_complete,
-            o_dBufAdr=self.dBufAdr,
-            o_wrData=self.wrData,
-            o_wrDataMask=self.wrDataMask,
-            i_wrDataEn=self.wrDataEn,
-            o_mc_ACT_n=self.mc_ACT_n,
-            o_mc_ADR=self.mc_ADR,
-            o_mc_BA=self.mc_BA,
-            o_mc_BG=self.mc_BG,
-            o_mc_CS_n=self.mc_CS_n,
-            o_mc_ODT=self.mc_ODT,
-            o_mcRdCAS=self.mcRdCAS,
-            o_mcWrCAS=self.mcWrCAS,
-            o_winRank=self.winRank,
-            o_winBuf=self.winBuf,
-            i_rdData=self.rdData,
-            i_rdDataEn=self.rdDataEn,
-            i_rdDataEnd=self.rdDataEnd,
-            o_compare_error=self.compare_error,
-            o_wr_rd_complete=self.wr_rd_complete,
-        )
 
         self.specials += Instance("ddr4_0",
             # Clk/Rst ------------------------------------------------------------------------------
@@ -115,7 +68,7 @@ class USDDRPHY(Module):
             io_c0_ddr4_dqs_t=pads.dqs_p,
 
             # Calibration --------------------------------------------------------------------------
-            o_c0_init_calib_complete=self.c0_init_calib_complete,
+            o_c0_init_calib_complete=self.init_calib_complete,
 
             # Debug --------------------------------------------------------------------------------
             o_dbg_clk=ClockSignal("ddr4_debug"),
@@ -146,8 +99,6 @@ class USDDRPHY(Module):
             o_rmw_rd_done=Signal(),
             i_mcCasSlot=0,
             i_mcCasSlot2=0,
-            i_winRank=self.winRank,
-            i_winBuf=self.winBuf,
             i_winInjTxn=0,
             i_winRmw=0,
             i_gt_data_ready=0,
@@ -155,25 +106,26 @@ class USDDRPHY(Module):
             o_tCWL=self.tCWL,
 
             # PHY Commands -------------------------------------------------------------------------
-            i_mc_ACT_n=self.mc_ACT_n,
-            i_mc_ADR=self.mc_ADR,
-            i_mc_BA=self.mc_BA,
-            i_mc_BG=self.mc_BG,
-            i_mc_CS_n=self.mc_CS_n,
-            i_mc_ODT=self.mc_ODT,
-            i_mcRdCAS=self.mcRdCAS,
-            i_mcWrCAS=self.mcWrCAS,
+            i_winRank=self.winRank,
+            i_winBuf=self.winBuf,
+            i_mc_ACT_n=0b11111111,
+            i_mc_ADR=0,
+            i_mc_BA=0,
+            i_mc_BG=0,
+            i_mc_CS_n=0b11111111,
+            i_mc_ODT=0,
+            i_mcRdCAS=0,
+            i_mcWrCAS=0,
             i_mc_CKE=0b11111111,
 
             # PHY Writes ---------------------------------------------------------------------------
-            i_wrData=self.wrData,
-            i_wrDataMask=self.wrDataMask,
-            o_wrDataEn=self.wrDataEn,
+            i_wrData=0,
+            i_wrDataMask=0,
+            #o_wrDataEn=,
 
             # PHY Reads ----------------------------------------------------------------------------
-            o_rdData=self.rdData,
-            o_rdDataEn=self.rdDataEn,
-            o_rdDataEnd=self.rdDataEnd,
+            o_rdData=,
+            o_rdDataEn=,
         )
         platform.add_source(os.path.join("ip", "ddrx_cal_mc_odt.sv"))
         platform.add_source(os.path.join("ip", "example_tb_phy.sv"))
