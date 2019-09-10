@@ -138,7 +138,7 @@ class USDDRPHY(Module):
             o_win_status=self.win_status,
             o_cal_r0_status=self.cal_r0_status,
             o_cal_post_status=self.cal_post_status,
-            #o_dbg_bus=,
+            o_dbg_bus=Signal(512),
             o_tCWL=self.tCWL,
 
             # Memory Controller Interface ----------------------------------------------------------
@@ -160,11 +160,12 @@ class USDDRPHY(Module):
             o_rdDataEn=self.rdDataEn,
             o_rdDataEnd=self.rdDataEnd,
 
-            #o_rdDataAddr=,
-            #o_per_rd_done=,
-            #o_rmw_rd_done=,
+            o_rdDataAddr=Signal(5),
+            o_per_rd_done=Signal(),
+            o_rmw_rd_done=Signal(),
             i_mc_CKE=0b11111111,
             i_mcCasSlot=0,
+            i_mcCasSlot2=0,
             i_winInjTxn=0,
             i_winRmw=0,
             i_gt_data_ready=0,
