@@ -38,11 +38,7 @@ class DDR4TestSoC(SoCMini):
 
         # Analyzer ---------------------------------------------------------------------------------
         analyzer_signals = [
-            ddr4_phy.c0_ddr4_ui_clk,
-            ddr4_phy.c0_ddr4_ui_clk_sync_rst,
             ddr4_phy.c0_init_calib_complete,        # Signifies the status of calibration
-
-            ddr4_phy.dbg_clk,
             ddr4_phy.dbg_rd_data_cmp,                # Comparison of dbg_rd_data and dbg_expected_data
             ddr4_phy.dbg_expected_data,              # Displays the expected data during calibration stages that use fabric-based data pattern comparison such as Read per
             ddr4_phy.dbg_cal_seq,                    # Calibration sequence indicator, when RTL is issuing commands to the DRAM.
@@ -64,7 +60,7 @@ class DDR4TestSoC(SoCMini):
             ddr4_phy.cal_post_status,                # Signifies the status of calibration.
             ddr4_phy.tCWL,
         ]
-        self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 128, csr_csv="analyzer.csv")
+        self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 128, clock_domain="dbg", csr_csv="analyzer.csv")
         self.add_csr("analyzer")
 
 # Build --------------------------------------------------------------------------------------------

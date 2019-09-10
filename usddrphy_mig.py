@@ -11,6 +11,8 @@ class USDDRPHY(Module):
 
         # # #
 
+        self.clock_domains.cd_dbg = ClockDomain()
+
         sys_rst = platform.request("cpu_reset")
         sys_clk = platform.request("clk300")
 
@@ -116,7 +118,7 @@ class USDDRPHY(Module):
             o_c0_init_calib_complete=self.c0_init_calib_complete,
 
             # Debug --------------------------------------------------------------------------------
-            o_dbg_clk=self.dbg_clk,
+            o_dbg_clk=ClockSignal("dbg"),
             o_dbg_rd_data_cmp=self.dbg_rd_data_cmp,
             o_dbg_expected_data=self.dbg_expected_data,
             o_dbg_cal_seq=self.dbg_cal_seq,
@@ -138,9 +140,6 @@ class USDDRPHY(Module):
             o_cal_post_status=self.cal_post_status,
             #o_dbg_bus=,
             o_tCWL=self.tCWL,
-
-            # ??? ----------------------------------------------------------------------------------
-            #o_addn_ui_clkout1=,
 
             # Memory Controller Interface ----------------------------------------------------------
             i_dBufAdr=self.dBufAdr,
@@ -172,5 +171,5 @@ class USDDRPHY(Module):
         )
         platform.add_source(os.path.join("ip", "ddrx_cal_mc_odt.sv"))
         platform.add_source(os.path.join("ip", "example_tb_phy.sv"))
-        #platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
-        platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
+        platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
+        #platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
