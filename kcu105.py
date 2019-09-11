@@ -87,7 +87,7 @@ class DDR4TestSoC(SoCSDRAM):
                 sdram_checker_port.rdata.valid,
                 sdram_checker_port.rdata.ready,
             ]
-            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 1024, csr_csv="analyzer.csv")
+            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 512, csr_csv="analyzer.csv")
             self.add_csr("analyzer")
 
 # Build --------------------------------------------------------------------------------------------

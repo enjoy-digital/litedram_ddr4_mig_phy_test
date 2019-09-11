@@ -22,10 +22,9 @@ print("FPGA: " + fpga_id)
 
 # Analyzer dump ------------------------------------------------------------------------------------
 analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-analyzer.configure_group(0)
-analyzer.configure_trigger("sdram_generator_port_cmd_valid": 1)
-#analyzer.configure_trigger("sdram_checker_port_cmd_valid": 1)
-analyzer.run(offset=32, length=1024)
+#analyzer.add_rising_edge_trigger("usddr4migphy_mc_rd_cas")
+analyzer.add_rising_edge_trigger("usddr4migphy_mc_wr_cas")
+analyzer.run(offset=64, length=128)
 analyzer.wait_done()
 analyzer.upload()
 analyzer.save("analyzer.vcd")

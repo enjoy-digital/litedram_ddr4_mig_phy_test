@@ -33,6 +33,7 @@ kB = 1024
 mB = 1024*kB
 gB = 1024*mB
 
+wb.regs.sdram_dfii_control.write(1) # hardware control
 
 class Generator:
     def __init__(self, name):

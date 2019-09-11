@@ -59,6 +59,8 @@ class USDDR4MIGPHY(Module, AutoCSR):
 
         rdcmdphase, rdphase = get_sys_phases(nphases, cl_sys_latency, cl)
         wrcmdphase, wrphase = get_sys_phases(nphases, cwl_sys_latency, cwl)
+
+        cwl_sys_latency = cwl_sys_latency - 2 # FUXME
         self.settings = PhySettings(
             memtype       = "DDR4",
             databits      = databits,
@@ -71,7 +73,7 @@ class USDDR4MIGPHY(Module, AutoCSR):
             wrcmdphase    = wrcmdphase,
             cl            = cl,
             cwl           = cwl,
-            read_latency  = 2 + cl_sys_latency + 1 + 3,
+            read_latency  = cl_sys_latency + 10, # FIXME
             write_latency = cwl_sys_latency
         )
 
@@ -84,23 +86,31 @@ class USDDR4MIGPHY(Module, AutoCSR):
         mc_wr_cas   = Signal()
         mc_cas_slot = Signal(2)
         self.comb += [
+            mc_rd_cas.eq(dfi.phases[self.settings.rdphase].rddata_en),
+            mc_wr_cas.eq(dfi.phases[self.settings.wrphase].wrdata_en),
             If(mc_rd_cas,
                 mc_cas_slot.eq(rdcmdphase), # FIXME; should only supporting CAS slots?
             ),
             If(mc_wr_cas,
                 mc_cas_slot.eq(wrcmdphase), # FIXME: should only supporting CAS slots?
             ),
-            mc_rd_cas.eq(dfi.phases[self.settings.rdphase].rddata_en),
-            mc_wr_cas.eq(dfi.phases[self.settings.rdphase].wrdata_en),
         ]
 
         # FIXME: drive
-        wr_data      = Signal(512, reset=0x12345678)
+        wr_data      = Cat(Cat(
+            dfi.phases[0].wrdata[i], dfi.phases[0].wrdata[databits+i],
+            dfi.phases[1].wrdata[i], dfi.phases[1].wrdata[databits+i],
+            dfi.phases[2].wrdata[i], dfi.phases[2].wrdata[databits+i],
+            dfi.phases[3].wrdata[i], dfi.phases[3].wrdata[databits+i]) for i in range(databits))
         wr_data_mask = Signal(512//8)
         wr_data_en   = Signal()
 
         # FIXME: drive
-        rd_data      = Signal(512)
+        rd_data      = Cat(Cat(
+            dfi.phases[0].rddata[i], dfi.phases[0].rddata[databits+i],
+            dfi.phases[1].rddata[i], dfi.phases[1].rddata[databits+i],
+            dfi.phases[2].rddata[i], dfi.phases[2].rddata[databits+i],
+            dfi.phases[3].rddata[i], dfi.phases[3].rddata[databits+i]) for i in range(databits))
         rd_data_en   = Signal()
 
         self.specials += Instance("ddr4_0",
@@ -236,18 +246,18 @@ class USDDR4MIGPHY(Module, AutoCSR):
         self.comb += wrdata_en.eq(last_wrdata_en[cwl_sys_latency])
 
         # Debug ------------------------------------------------------------------------------------
-        wr_data_32 = Signal(32)
-        rd_data_32 = Signal(32)
+        _wr_data = Signal(8)
+        _rd_data = Signal(8)
         self.comb += [
-            wr_data_32.eq(wr_data),
-            rd_data_32.eq(rd_data),
+            _wr_data.eq(wr_data),
+            _rd_data.eq(rd_data),
         ]
 
         self.mc_rd_cas  = mc_rd_cas
         self.mc_wr_cas  = mc_wr_cas
-        self.wr_data    = wr_data_32
+        self.wr_data    = _wr_data
         self.wr_data_en = wr_data_en
-        self.rd_data    = rd_data_32
+        self.rd_data    = _rd_data
         self.rd_data_en = rd_data_en
 
         self.core_rddata_en = rddata_en
