@@ -22,11 +22,11 @@ print("FPGA: " + fpga_id)
 
 # Check DDR4 calibration ---------------------------------------------------------------------------
 if wb.regs.ddr4_phy_calib_done.read() != 1:
-	print("DDR4 calibration failed, exiting.")
-	wb.close()
-	exit(0)
+    print("DDR4 calibration failed, exiting.")
+    wb.close()
+    exit(0)
 else:
-	print("DDR4 calibration successful, continue.")
+    print("DDR4 calibration successful, continue.")
 
 # Test DDR4 ----------------------------------------------------------------------------------------
 kB = 1024
@@ -160,14 +160,14 @@ bist.test(0x00000000, 16*mB, 32*mB, True)
 
 # Analyzer dump ------------------------------------------------------------------------------------
 if hasattr(wb.regs, "analyzer"):
-	print("true")
-	analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-	analyzer.configure_group(0)
-	analyzer.run(offset=32, length=128)
+    print("true")
+    analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
+    analyzer.configure_group(0)
+    analyzer.run(offset=32, length=128)
 
-	analyzer.wait_done()
-	analyzer.upload()
-	analyzer.save("analyzer.vcd")
+    analyzer.wait_done()
+    analyzer.upload()
+    analyzer.save("analyzer.vcd")
 
 # # #
 
