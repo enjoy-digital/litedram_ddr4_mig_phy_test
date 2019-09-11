@@ -78,7 +78,28 @@ class USDDR4MIGPHY(Module):
         dfi = Interface(addressbits, bankbits, nranks, 2*databits, nphases)
         self.submodules += DDR4DFIMux(self.dfi, dfi)
 
-        cas_slot = Signal(2)
+        mc_rd_cas   = Signal()
+        mc_wr_cas   = Signal()
+        mc_cas_slot = Signal(2)
+        self.comb += [
+            If(mc_rd_cas,
+                mc_cas_slot.eq(rdcmdphase), # FIXME; should only supporting CAS slots?
+            ),
+            If(mc_wr_cas,
+                mc_cas_slot.eq(wrcmdphase), # FIXME: should only supporting CAS slots?
+            ),
+            mc_rd_cas.eq(dfi.phases[self.settings.rdphase].rddata_en),
+            mc_wr_cas.eq(dfi.phases[self.settings.rdphase].wrdata_en),
+        ]
+
+        # FIXME: drive
+        wr_data      = Signal(512, reset=0x12345678)
+        wr_data_mask = Signal(512//8)
+        wr_data_en   = Signal()
+
+        # FIXME: drive
+        rd_data      = Signal(512)
+        rd_data_en   = Signal()
 
         self.specials += Instance("ddr4_0",
             # Clk/Rst ------------------------------------------------------------------------------
@@ -182,19 +203,50 @@ class USDDR4MIGPHY(Module):
                 dfi.phases[1].cke, dfi.phases[1].cke,
                 dfi.phases[2].cke, dfi.phases[2].cke,
                 dfi.phases[3].cke, dfi.phases[3].cke),
-            i_mcCasSlot  = cas_slot, # FIXME: generate cas_slot
-            i_mcCasSlot2 = cas_slot[1],
-            i_mcRdCAS    = 0,
-            i_mcWrCAS    = 0,
+            i_mcCasSlot  = mc_cas_slot, # FIXME: generate cas_slot
+            i_mcCasSlot2 = mc_cas_slot[1],
+            i_mcRdCAS    = mc_rd_cas,
+            i_mcWrCAS    = mc_wr_cas,
 
             # PHY Writes ---------------------------------------------------------------------------
-            i_wrData     = 0,
-            i_wrDataMask = 0,
-            #o_wrDataEn  =,
+            i_wrData     = wr_data,
+            i_wrDataMask = wr_data_mask,
+            o_wrDataEn   = wr_data_en,
 
             # PHY Reads ----------------------------------------------------------------------------
-            #o_rdData   =,
-            #o_rdDataEn =,
+            o_rdData   = rd_data,
+            o_rdDataEn = rd_data_en,
         )
         platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
         #platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
+
+        # Flow Control (for debug) -----------------------------------------------------------------
+        rddata_en = dfi.phases[self.settings.rdphase].rddata_en
+        for i in range(self.settings.read_latency-1):
+            n_rddata_en = Signal()
+            self.sync += n_rddata_en.eq(rddata_en)
+            rddata_en = n_rddata_en
+
+        wrdata_en = Signal()
+        last_wrdata_en = Signal(cwl_sys_latency+2)
+        wrphase = dfi.phases[self.settings.wrphase]
+        self.sync += last_wrdata_en.eq(Cat(wrphase.wrdata_en, last_wrdata_en[:-1]))
+        self.comb += wrdata_en.eq(last_wrdata_en[cwl_sys_latency])
+
+        # Debug ------------------------------------------------------------------------------------
+        wr_data_32 = Signal(32)
+        rd_data_32 = Signal(32)
+        self.comb += [
+            wr_data_32.eq(wr_data),
+            rd_data_32.eq(rd_data),
+        ]
+
+        self.mc_rd_cas  = mc_rd_cas
+        self.mc_wr_cas  = mc_wr_cas
+        self.wr_data    = wr_data_32
+        self.wr_data_en = wr_data_en
+        self.rd_data    = rd_data_32
+        self.rd_data_en = rd_data_en
+
+        self.core_rddata_en = rddata_en
+        self.core_wrdata_en = wrdata_en
