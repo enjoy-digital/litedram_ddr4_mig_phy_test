@@ -135,8 +135,9 @@ class BIST:
 
         while True:
             # write
-            self.generator.init(base, length, random)
-            write_speed = self.generator.wait()
+            #self.generator.init(base, length, random)
+            #write_speed = self.generator.wait()
+            write_speed = 0
 
             # read
             self.checker.init(base, length, random)

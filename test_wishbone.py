@@ -47,7 +47,7 @@ def check_pattern(length, debug=False):
     errors = 0
     for i in range(length):
         error = 0
-        if wb.read(wb.mems.main_ram.base + 4*i) != seed_to_data(i):
+        if wb.read(wb.mems.main_ram.base + 4*i + 0x10000000) != seed_to_data(i):
             error = 1
             if debug:
                 print("{}: 0x{:08x}, 0x{:08x} KO".format(i, wb.read(wb.mems.main_ram.base + 4*i), seed_to_data(i)))

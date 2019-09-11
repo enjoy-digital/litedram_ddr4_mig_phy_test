@@ -66,6 +66,7 @@ class DDR4TestSoC(SoCSDRAM):
                 ddr4_phy.init_calib_complete,
                 ddr4_phy.mc_rd_cas,
                 ddr4_phy.mc_wr_cas,
+                ddr4_phy.mc_cas_slot,
                 ddr4_phy.wr_data,
                 ddr4_phy.wr_data_en,
                 ddr4_phy.rd_data,

@@ -22,8 +22,12 @@ print("FPGA: " + fpga_id)
 
 # Analyzer dump ------------------------------------------------------------------------------------
 analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-#analyzer.add_rising_edge_trigger("usddr4migphy_mc_rd_cas")
-analyzer.add_rising_edge_trigger("usddr4migphy_mc_wr_cas")
+#analyzer.configure_trigger(cond={
+#	"usddr4migphy_mc_rd_cas" : 1,
+#	"usddr4migphy_mc_wr_cas" : 0,
+#})
+analyzer.add_rising_edge_trigger("usddr4migphy_mc_rd_cas")
+#analyzer.add_rising_edge_trigger("usddr4migphy_mc_wr_cas")
 analyzer.run(offset=64, length=128)
 analyzer.wait_done()
 analyzer.upload()

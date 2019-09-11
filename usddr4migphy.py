@@ -60,7 +60,7 @@ class USDDR4MIGPHY(Module, AutoCSR):
         rdcmdphase, rdphase = get_sys_phases(nphases, cl_sys_latency, cl)
         wrcmdphase, wrphase = get_sys_phases(nphases, cwl_sys_latency, cwl)
 
-        cwl_sys_latency = cwl_sys_latency - 2 # FUXME
+        #cwl_sys_latency = cwl_sys_latency - 2 # FUXME
         self.settings = PhySettings(
             memtype       = "DDR4",
             databits      = databits,
@@ -87,13 +87,13 @@ class USDDR4MIGPHY(Module, AutoCSR):
         mc_cas_slot = Signal(2)
         self.comb += [
             mc_rd_cas.eq(dfi.phases[self.settings.rdphase].rddata_en),
-            mc_wr_cas.eq(dfi.phases[self.settings.wrphase].wrdata_en),
+            #mc_wr_cas.eq(dfi.phases[self.settings.wrphase].wrdata_en), # FIXME
             If(mc_rd_cas,
                 mc_cas_slot.eq(rdcmdphase), # FIXME; should only supporting CAS slots?
             ),
-            If(mc_wr_cas,
-                mc_cas_slot.eq(wrcmdphase), # FIXME: should only supporting CAS slots?
-            ),
+            #If(mc_wr_cas,
+            #    mc_cas_slot.eq(wrcmdphase), # FIXME: should only supporting CAS slots? # FIXME
+            #),
         ]
 
         # FIXME: drive
@@ -102,7 +102,11 @@ class USDDR4MIGPHY(Module, AutoCSR):
             dfi.phases[1].wrdata[i], dfi.phases[1].wrdata[databits+i],
             dfi.phases[2].wrdata[i], dfi.phases[2].wrdata[databits+i],
             dfi.phases[3].wrdata[i], dfi.phases[3].wrdata[databits+i]) for i in range(databits))
-        wr_data_mask = Signal(512//8)
+        wr_data_mask = Cat(Cat(
+            dfi.phases[0].wrdata_mask[i], dfi.phases[0].wrdata_mask[databits//8+i],
+            dfi.phases[1].wrdata_mask[i], dfi.phases[1].wrdata_mask[databits//8+i],
+            dfi.phases[2].wrdata_mask[i], dfi.phases[2].wrdata_mask[databits//8+i],
+            dfi.phases[3].wrdata_mask[i], dfi.phases[3].wrdata_mask[databits//8+i]) for i in range(databits//8))
         wr_data_en   = Signal()
 
         # FIXME: drive
@@ -253,12 +257,13 @@ class USDDR4MIGPHY(Module, AutoCSR):
             _rd_data.eq(rd_data),
         ]
 
-        self.mc_rd_cas  = mc_rd_cas
-        self.mc_wr_cas  = mc_wr_cas
-        self.wr_data    = _wr_data
-        self.wr_data_en = wr_data_en
-        self.rd_data    = _rd_data
-        self.rd_data_en = rd_data_en
+        self.mc_rd_cas   = mc_rd_cas
+        self.mc_wr_cas   = mc_wr_cas
+        self.mc_cas_slot = mc_cas_slot
+        self.wr_data     = _wr_data
+        self.wr_data_en  = wr_data_en
+        self.rd_data     = _rd_data
+        self.rd_data_en  = rd_data_en
 
         self.core_rddata_en = rddata_en
         self.core_wrdata_en = wrdata_en
