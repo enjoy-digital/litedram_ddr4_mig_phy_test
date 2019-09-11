@@ -77,7 +77,7 @@ def main():
         prog.load_bitstream("build/gateware/top.bit")
     else:
         soc = DDR4TestSoC()
-        builder = Builder(soc, output_dir="build", csr_csv="csr.csv", compile_gateware=True)
+        builder = Builder(soc, output_dir="build", csr_csv="csr.csv", compile_gateware=False)
         vns = builder.build()
 
 if __name__ == "__main__":

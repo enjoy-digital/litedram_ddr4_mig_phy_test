@@ -12,6 +12,7 @@ from litex.soc.interconnect.csr import *
 from litedram.common import *
 from litedram.phy.dfi import *
 
+# Xilinx Ultrascale DDR4 MIG PHY -------------------------------------------------------------------
 
 class USDDR4MIGPHY(Module):
     def __init__(self, platform, pads):
@@ -144,28 +145,43 @@ class USDDR4MIGPHY(Module):
 
             # PHY Commands -------------------------------------------------------------------------
             i_mc_ACT_n  = Cat(
-                getattr(dfi.phases[0], "act_n"), getattr(dfi.phases[0], "act_n"),
-                getattr(dfi.phases[1], "act_n"), getattr(dfi.phases[1], "act_n"),
-                getattr(dfi.phases[2], "act_n"), getattr(dfi.phases[2], "act_n"),
-                getattr(dfi.phases[3], "act_n"), getattr(dfi.phases[3], "act_n")),
-            i_mc_ADR    = 0,
-            i_mc_BA     = 0,
-            i_mc_BG     = 0,
+                dfi.phases[0].act_n, dfi.phases[0].act_n,
+                dfi.phases[1].act_n, dfi.phases[1].act_n,
+                dfi.phases[2].act_n, dfi.phases[2].act_n,
+                dfi.phases[3].act_n, dfi.phases[3].act_n),
+            i_mc_ADR    = Cat(Cat(
+                dfi.phases[0].address[i], dfi.phases[0].address[i],
+                dfi.phases[1].address[i], dfi.phases[1].address[i],
+                dfi.phases[2].address[i], dfi.phases[2].address[i],
+                dfi.phases[3].address[i], dfi.phases[3].address[i])
+                for i in range(addressbits)),
+            i_mc_BA     = Cat(Cat(
+                dfi.phases[0].bank[i], dfi.phases[0].bank[i],
+                dfi.phases[1].bank[i], dfi.phases[1].bank[i],
+                dfi.phases[2].bank[i], dfi.phases[2].bank[i],
+                dfi.phases[3].bank[i], dfi.phases[3].bank[i])
+                for i in range(len(pads.ba))),
+            i_mc_BG     = Cat(Cat(
+                dfi.phases[0].bank[i], dfi.phases[0].bank[i],
+                dfi.phases[1].bank[i], dfi.phases[1].bank[i],
+                dfi.phases[2].bank[i], dfi.phases[2].bank[i],
+                dfi.phases[3].bank[i], dfi.phases[3].bank[i])
+                for i in range(len(pads.ba), len(pads.ba) + len(pads.bg))),
             i_mc_CS_n   = Cat(
-                getattr(dfi.phases[0], "cs_n"), getattr(dfi.phases[0], "cs_n"),
-                getattr(dfi.phases[1], "cs_n"), getattr(dfi.phases[1], "cs_n"),
-                getattr(dfi.phases[2], "cs_n"), getattr(dfi.phases[2], "cs_n"),
-                getattr(dfi.phases[3], "cs_n"), getattr(dfi.phases[3], "cs_n")),
+                dfi.phases[0].cs_n, dfi.phases[0].cs_n,
+                dfi.phases[1].cs_n, dfi.phases[1].cs_n,
+                dfi.phases[2].cs_n, dfi.phases[2].cs_n,
+                dfi.phases[3].cs_n, dfi.phases[3].cs_n),
             i_mc_ODT    = Cat(
-                getattr(dfi.phases[0], "odt"), getattr(dfi.phases[0], "odt"),
-                getattr(dfi.phases[1], "odt"), getattr(dfi.phases[1], "odt"),
-                getattr(dfi.phases[2], "odt"), getattr(dfi.phases[2], "odt"),
-                getattr(dfi.phases[3], "odt"), getattr(dfi.phases[3], "odt")),
+                dfi.phases[0].odt, dfi.phases[0].odt,
+                dfi.phases[1].odt, dfi.phases[1].odt,
+                dfi.phases[2].odt, dfi.phases[2].odt,
+                dfi.phases[3].odt, dfi.phases[3].odt),
             i_mc_CKE    = Cat(
-                getattr(dfi.phases[0], "cke"), getattr(dfi.phases[0], "cke"),
-                getattr(dfi.phases[1], "cke"), getattr(dfi.phases[1], "cke"),
-                getattr(dfi.phases[2], "cke"), getattr(dfi.phases[2], "cke"),
-                getattr(dfi.phases[3], "cke"), getattr(dfi.phases[3], "cke")),
+                dfi.phases[0].cke, dfi.phases[0].cke,
+                dfi.phases[1].cke, dfi.phases[1].cke,
+                dfi.phases[2].cke, dfi.phases[2].cke,
+                dfi.phases[3].cke, dfi.phases[3].cke),
             i_mcCasSlot  = cas_slot, # FIXME: generate cas_slot
             i_mcCasSlot2 = cas_slot[1],
             i_mcRdCAS    = 0,
