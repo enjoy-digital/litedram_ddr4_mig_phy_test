@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# This file is Copyright (c) 2018-2019 Florent Kermarrec <florent@enjoy-digital.fr>
+# This file is Copyright (c) 2019 Florent Kermarrec <florent@enjoy-digital.fr>
 # License: BSD
 
 import sys
@@ -18,7 +18,7 @@ from litex.soc.integration.builder import *
 
 from litescope import LiteScopeAnalyzer
 
-from usddrphy_mig import USDDRPHY
+from usddr4migphy import USDDR4MIGPHY
 
 # DDR4TestSoC --------------------------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ class DDR4TestSoC(SoCMini):
         self.add_wb_master(self.serial_bridge.wishbone)
 
         # DDR4 PHY ---------------------------------------------------------------------------------
-        self.submodules.ddr4_phy = ddr4_phy = USDDRPHY(platform, platform.request("ddram"))
+        self.submodules.ddr4_phy = ddr4_phy = USDDR4MIGPHY(platform, platform.request("ddram"))
 
         # Leds -------------------------------------------------------------------------------------
         self.comb += platform.request("user_led", 0).eq(ddr4_phy.init_calib_complete)
