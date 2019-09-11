@@ -14,7 +14,7 @@ from litedram.phy.dfi import *
 
 # Xilinx Ultrascale DDR4 MIG PHY -------------------------------------------------------------------
 
-class USDDR4MIGPHY(Module):
+class USDDR4MIGPHY(Module, AutoCSR):
     def __init__(self, platform, pads):
         addressbits = len(pads.a) + 3
         bankbits    = len(pads.ba) + len(pads.bg)
@@ -22,8 +22,7 @@ class USDDR4MIGPHY(Module):
         databits    = len(pads.dq)
         nphases     = 4
 
-        self.init_calib_complete = Signal()
-
+        self.init_calib_complete        = Signal()
         self.dbg_rd_data_cmp            = Signal(64)
         self.dbg_expected_data          = Signal(64)
         self.dbg_cal_seq                = Signal(3)
@@ -44,6 +43,9 @@ class USDDR4MIGPHY(Module):
         self.cal_r0_status              = Signal(128)
         self.cal_post_status            = Signal(9)
         self.tCWL                       = Signal(6)
+
+        self.calib_done = CSRStatus()
+        self.comb += self.calib_done.status.eq(self.init_calib_complete)
 
         # # #
 

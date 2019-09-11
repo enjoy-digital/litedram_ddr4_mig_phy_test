@@ -43,6 +43,7 @@ class DDR4TestSoC(SoCSDRAM):
 
         # DDR4 PHY ---------------------------------------------------------------------------------
         self.submodules.ddr4_phy = ddr4_phy = USDDR4MIGPHY(platform, platform.request("ddram"))
+        self.add_csr("ddr4_phy")
 
         # DDR4 Core --------------------------------------------------------------------------------
         sdram_module = EDY4016A(sys_clk_freq, "1:4")
