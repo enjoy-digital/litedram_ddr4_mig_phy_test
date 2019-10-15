@@ -60,6 +60,10 @@ class DDR4TestSoC(SoCSDRAM):
         self.comb += platform.request("user_led", 0).eq(ddr4_phy.init_calib_complete)
 
         # Analyzer ---------------------------------------------------------------------------------
+        sdram_generator_port_wdata_data = Signal(8)
+        self.comb += sdram_generator_port_wdata_data.eq(sdram_generator_port.wdata.data)
+        sdram_checker_port_rdata_data = Signal(8)
+        self.comb += sdram_checker_port_rdata_data.eq(sdram_checker_port.rdata.data)
         if with_analyzer:
             analyzer_signals = [
                 ddr4_phy.init_calib_complete,
@@ -67,6 +71,7 @@ class DDR4TestSoC(SoCSDRAM):
                 ddr4_phy.mc_wr_cas,
                 ddr4_phy.mc_cas_slot,
                 ddr4_phy.wr_data,
+                ddr4_phy.wr_data_mask,
                 ddr4_phy.wr_data_en,
                 ddr4_phy.rd_data,
                 ddr4_phy.rd_data_en,
@@ -77,15 +82,13 @@ class DDR4TestSoC(SoCSDRAM):
                 sdram_generator_port.cmd.ready,
                 sdram_generator_port.wdata.valid,
                 sdram_generator_port.wdata.ready,
-                sdram_generator_port.rdata.valid,
-                sdram_generator_port.rdata.ready,
+                sdram_generator_port_wdata_data,
 
                 sdram_checker_port.cmd.valid,
                 sdram_checker_port.cmd.ready,
-                sdram_checker_port.wdata.valid,
-                sdram_checker_port.wdata.ready,
                 sdram_checker_port.rdata.valid,
                 sdram_checker_port.rdata.ready,
+                sdram_checker_port_rdata_data,
             ]
             self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 512, csr_csv="analyzer.csv")
             self.add_csr("analyzer")

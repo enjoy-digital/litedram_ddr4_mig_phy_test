@@ -38,27 +38,28 @@ def seed_to_data(seed, random=True):
     else:
         return seed
 
-def write_pattern(length):
+def write_pattern(length, offset=0):
     for i in range(length):
-        wb.write(wb.mems.main_ram.base + 4*i, seed_to_data(i))
+        wb.write(wb.mems.main_ram.base + offset + 4*i, seed_to_data(i))
         time.sleep(0.1)
 
-def check_pattern(length, debug=False):
+def check_pattern(length, offset=0, debug=False):
     errors = 0
     for i in range(length):
         error = 0
-        if wb.read(wb.mems.main_ram.base + 4*i + 0x10000000) != seed_to_data(i):
+        if wb.read(wb.mems.main_ram.base + offset + 4*i) != seed_to_data(i):
             error = 1
             if debug:
-                print("{}: 0x{:08x}, 0x{:08x} KO".format(i, wb.read(wb.mems.main_ram.base + 4*i), seed_to_data(i)))
+                print("{}: 0x{:08x}, 0x{:08x} KO".format(i, wb.read(wb.mems.main_ram.base + offset + 4*i), seed_to_data(i)))
         else:
             if debug:
-                print("{}: 0x{:08x}, 0x{:08x} OK".format(i, wb.read(wb.mems.main_ram.base + 4*i), seed_to_data(i)))
+                print("{}: 0x{:08x}, 0x{:08x} OK".format(i, wb.read(wb.mems.main_ram.base + offset + 4*i), seed_to_data(i)))
         errors += error
     return errors
 
-write_pattern(64)
-errors = check_pattern(64, debug=True)
+offset = 1024*1024
+write_pattern(64, offset=offset)
+errors = check_pattern(32, offset=offset, debug=True)
 print("{} errors".format(errors))
 
 # # #

@@ -4,7 +4,6 @@ import sys
 import time
 
 from litex import RemoteClient
-from litescope import LiteScopeAnalyzerDriver
 
 wb = RemoteClient()
 wb.open()
@@ -135,9 +134,8 @@ class BIST:
 
         while True:
             # write
-            #self.generator.init(base, length, random)
-            #write_speed = self.generator.wait()
-            write_speed = 0
+            self.generator.init(base, length, random)
+            write_speed = self.generator.wait()
 
             # read
             self.checker.init(base, length, random)
@@ -158,18 +156,7 @@ class BIST:
             offset += increment
 
 bist = BIST(Generator("sdram_generator"), Checker("sdram_checker"))
-bist.test(0x00000000, 16*mB, 32*mB, True)
-
-# Analyzer dump ------------------------------------------------------------------------------------
-if hasattr(wb.regs, "analyzer"):
-    print("true")
-    analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-    analyzer.configure_group(0)
-    analyzer.run(offset=32, length=128)
-
-    analyzer.wait_done()
-    analyzer.upload()
-    analyzer.save("analyzer.vcd")
+bist.test(0x00000000, 1024*mB, 32*mB, True)
 
 # # #
 

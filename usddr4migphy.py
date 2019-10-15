@@ -15,7 +15,7 @@ from litedram.phy.dfi import *
 # Xilinx Ultrascale DDR4 MIG PHY -------------------------------------------------------------------
 
 class USDDR4MIGPHY(Module, AutoCSR):
-    def __init__(self, platform, pads):
+    def __init__(self, platform, pads, use_dcp=True):
         addressbits = len(pads.a) + 3
         bankbits    = len(pads.ba) + len(pads.bg)
         nranks      = 1 if not hasattr(pads, "cs_n") else len(pads.cs_n)
@@ -59,6 +59,8 @@ class USDDR4MIGPHY(Module, AutoCSR):
 
         rdcmdphase, rdphase = get_sys_phases(nphases, cl_sys_latency, cl)
         wrcmdphase, wrphase = get_sys_phases(nphases, cwl_sys_latency, cwl)
+        assert rdcmdphase%2 == 0 # MIG only supports command on even slots.
+        assert wrcmdphase%2 == 0
 
         #cwl_sys_latency = cwl_sys_latency - 2 # FUXME
         self.settings = PhySettings(
@@ -86,17 +88,20 @@ class USDDR4MIGPHY(Module, AutoCSR):
         mc_wr_cas   = Signal()
         mc_cas_slot = Signal(2)
         self.comb += [
-            mc_rd_cas.eq(dfi.phases[self.settings.rdphase].rddata_en),
-            #mc_wr_cas.eq(dfi.phases[self.settings.wrphase].wrdata_en), # FIXME
-            If(mc_rd_cas,
-                mc_cas_slot.eq(rdcmdphase), # FIXME; should only supporting CAS slots?
-            ),
-            #If(mc_wr_cas,
-            #    mc_cas_slot.eq(wrcmdphase), # FIXME: should only supporting CAS slots? # FIXME
-            #),
+            If(self.init_calib_complete,
+                mc_rd_cas.eq( dfi.phases[rdcmdphase].ras_n &
+                             ~dfi.phases[rdcmdphase].cas_n &
+                              dfi.phases[rdcmdphase].we_n &
+                             ~dfi.phases[rdcmdphase].cs_n),
+                mc_wr_cas.eq( dfi.phases[rdcmdphase].ras_n &
+                             ~dfi.phases[rdcmdphase].cas_n &
+                             ~dfi.phases[rdcmdphase].we_n &
+                             ~dfi.phases[rdcmdphase].cs_n),
+                If(mc_rd_cas, mc_cas_slot.eq(rdcmdphase)),
+                If(mc_wr_cas, mc_cas_slot.eq(wrcmdphase)),
+            )
         ]
 
-        # FIXME: drive
         wr_data      = Cat(Cat(
             dfi.phases[0].wrdata[i], dfi.phases[0].wrdata[databits+i],
             dfi.phases[1].wrdata[i], dfi.phases[1].wrdata[databits+i],
@@ -109,13 +114,12 @@ class USDDR4MIGPHY(Module, AutoCSR):
             dfi.phases[3].wrdata_mask[i], dfi.phases[3].wrdata_mask[databits//8+i]) for i in range(databits//8))
         wr_data_en   = Signal()
 
-        # FIXME: drive
         rd_data      = Cat(Cat(
             dfi.phases[0].rddata[i], dfi.phases[0].rddata[databits+i],
             dfi.phases[1].rddata[i], dfi.phases[1].rddata[databits+i],
             dfi.phases[2].rddata[i], dfi.phases[2].rddata[databits+i],
             dfi.phases[3].rddata[i], dfi.phases[3].rddata[databits+i]) for i in range(databits))
-        rd_data_en   = Signal()
+        rd_data_en   = Signal() # FIXME: use
 
         self.specials += Instance("ddr4_0",
             # Clk/Rst ------------------------------------------------------------------------------
@@ -219,7 +223,7 @@ class USDDR4MIGPHY(Module, AutoCSR):
                 dfi.phases[1].cke, dfi.phases[1].cke,
                 dfi.phases[2].cke, dfi.phases[2].cke,
                 dfi.phases[3].cke, dfi.phases[3].cke),
-            i_mcCasSlot  = mc_cas_slot, # FIXME: generate cas_slot
+            i_mcCasSlot  = mc_cas_slot,
             i_mcCasSlot2 = mc_cas_slot[1],
             i_mcRdCAS    = mc_rd_cas,
             i_mcWrCAS    = mc_wr_cas,
@@ -233,8 +237,10 @@ class USDDR4MIGPHY(Module, AutoCSR):
             o_rdData   = rd_data,
             o_rdDataEn = rd_data_en,
         )
-        platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
-        #platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
+        if use_dcp:
+            platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
+        else:
+            platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
 
         # Flow Control (for debug) -----------------------------------------------------------------
         rddata_en = dfi.phases[self.settings.rdphase].rddata_en
@@ -257,13 +263,14 @@ class USDDR4MIGPHY(Module, AutoCSR):
             _rd_data.eq(rd_data),
         ]
 
-        self.mc_rd_cas   = mc_rd_cas
-        self.mc_wr_cas   = mc_wr_cas
-        self.mc_cas_slot = mc_cas_slot
-        self.wr_data     = _wr_data
-        self.wr_data_en  = wr_data_en
-        self.rd_data     = _rd_data
-        self.rd_data_en  = rd_data_en
+        self.mc_rd_cas      = mc_rd_cas
+        self.mc_wr_cas      = mc_wr_cas
+        self.mc_cas_slot    = mc_cas_slot
+        self.wr_data        = _wr_data
+        self.wr_data_en     = wr_data_en
+        self.wr_data_mask   = wr_data_mask
+        self.rd_data        = _rd_data
+        self.rd_data_en     = rd_data_en
 
         self.core_rddata_en = rddata_en
         self.core_wrdata_en = wrdata_en
