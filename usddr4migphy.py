@@ -57,12 +57,12 @@ class USDDR4MIGPHY(Module, AutoCSR):
         cl_sys_latency  = get_sys_latency(nphases, cl)
         cwl_sys_latency = get_sys_latency(nphases, cwl)
 
-        rdcmdphase, rdphase = get_sys_phases(nphases, cl_sys_latency, cl)
-        wrcmdphase, wrphase = get_sys_phases(nphases, cwl_sys_latency, cwl)
-        assert rdcmdphase%2 == 0 # MIG only supports command on even slots.
-        assert wrcmdphase%2 == 0
+        rdcmdphase, rdphase = 3, 0
+        wrcmdphase, wrphase = 1, 2
+        assert rdphase%2 == 0 # MIG only supports command on even slots.
+        assert wrphase%2 == 0
 
-        #cwl_sys_latency = cwl_sys_latency - 2 # FUXME
+        #cwl_sys_latency = cwl_sys_latency - 2 # FIXME
         self.settings = PhySettings(
             memtype       = "DDR4",
             databits      = databits,
@@ -87,69 +87,73 @@ class USDDR4MIGPHY(Module, AutoCSR):
         mc_rd_cas   = Signal()
         mc_wr_cas   = Signal()
         mc_cas_slot = Signal(2)
+        print(rdcmdphase)
+        print(rdphase)
+        print(wrcmdphase)
+        print(wrphase)
         self.comb += [
             If(self.init_calib_complete,
-                mc_rd_cas.eq( dfi.phases[rdcmdphase].ras_n &
-                             ~dfi.phases[rdcmdphase].cas_n &
-                              dfi.phases[rdcmdphase].we_n &
-                             ~dfi.phases[rdcmdphase].cs_n),
-                mc_wr_cas.eq( dfi.phases[rdcmdphase].ras_n &
-                             ~dfi.phases[rdcmdphase].cas_n &
-                             ~dfi.phases[rdcmdphase].we_n &
-                             ~dfi.phases[rdcmdphase].cs_n),
-                If(mc_rd_cas, mc_cas_slot.eq(rdcmdphase)),
-                If(mc_wr_cas, mc_cas_slot.eq(wrcmdphase)),
+                # Set mc_rd_cas if a read command on the bus
+                mc_rd_cas.eq(dfi.phases[rdphase].rddata_en),
+                If(mc_rd_cas, mc_cas_slot.eq(rdphase)),
+                # Set mc_wr_cas if write command on the bus
+                mc_wr_cas.eq(dfi.phases[wrphase].wrdata_en),
+                If(mc_wr_cas, mc_cas_slot.eq(wrphase)),
             )
         ]
-
-        wr_data      = Cat(Cat(
-            dfi.phases[0].wrdata[i], dfi.phases[0].wrdata[databits+i],
-            dfi.phases[1].wrdata[i], dfi.phases[1].wrdata[databits+i],
-            dfi.phases[2].wrdata[i], dfi.phases[2].wrdata[databits+i],
-            dfi.phases[3].wrdata[i], dfi.phases[3].wrdata[databits+i]) for i in range(databits))
-        wr_data_mask = Cat(Cat(
-            dfi.phases[0].wrdata_mask[i], dfi.phases[0].wrdata_mask[databits//8+i],
-            dfi.phases[1].wrdata_mask[i], dfi.phases[1].wrdata_mask[databits//8+i],
-            dfi.phases[2].wrdata_mask[i], dfi.phases[2].wrdata_mask[databits//8+i],
-            dfi.phases[3].wrdata_mask[i], dfi.phases[3].wrdata_mask[databits//8+i]) for i in range(databits//8))
+        wr_data      = Signal(databits*8)
+        wr_data_mask = Signal(databits)
         wr_data_en   = Signal()
-
-        rd_data      = Cat(Cat(
-            dfi.phases[0].rddata[i], dfi.phases[0].rddata[databits+i],
-            dfi.phases[1].rddata[i], dfi.phases[1].rddata[databits+i],
-            dfi.phases[2].rddata[i], dfi.phases[2].rddata[databits+i],
-            dfi.phases[3].rddata[i], dfi.phases[3].rddata[databits+i]) for i in range(databits))
-        rd_data_en   = Signal() # FIXME: use
+        rd_data      = Signal(databits*8)
+        self.comb += [
+            #wr_data.eq(Cat(Cat(
+            #    dfi.phases[0].wrdata[i], dfi.phases[0].wrdata[databits+i],
+            #    dfi.phases[1].wrdata[i], dfi.phases[1].wrdata[databits+i],
+            #    dfi.phases[2].wrdata[i], dfi.phases[2].wrdata[databits+i],
+            #    dfi.phases[3].wrdata[i], dfi.phases[3].wrdata[databits+i]) for i in range(databits))),
+            wr_data.eq(0x12345678),
+            wr_data_mask.eq(Cat(Cat(
+                dfi.phases[0].wrdata_mask[i], dfi.phases[0].wrdata_mask[databits//8+i],
+                dfi.phases[1].wrdata_mask[i], dfi.phases[1].wrdata_mask[databits//8+i],
+                dfi.phases[2].wrdata_mask[i], dfi.phases[2].wrdata_mask[databits//8+i],
+                dfi.phases[3].wrdata_mask[i], dfi.phases[3].wrdata_mask[databits//8+i]) for i in range(databits//8))),
+            Cat(Cat(
+                dfi.phases[0].rddata[i], dfi.phases[0].rddata[databits+i],
+                dfi.phases[1].rddata[i], dfi.phases[1].rddata[databits+i],
+                dfi.phases[2].rddata[i], dfi.phases[2].rddata[databits+i],
+                dfi.phases[3].rddata[i], dfi.phases[3].rddata[databits+i]) for i in range(databits)).eq(rd_data)
+        ]
+        rd_data_en = Signal() # FIXME: use
 
         self.specials += Instance("ddr4_0",
             # Clk/Rst ------------------------------------------------------------------------------
-            i_sys_rst                 = rst,
-            i_c0_sys_clk_p            = clk300.p,
-            i_c0_sys_clk_n            = clk300.n,
-            o_c0_ddr4_ui_clk          = ClockSignal("sys"),
-            o_c0_ddr4_ui_clk_sync_rst = ResetSignal("sys"),
+            i_sys_rst                    = rst,
+            i_c0_sys_clk_p               = clk300.p,
+            i_c0_sys_clk_n               = clk300.n,
+            o_c0_ddr4_ui_clk             = ClockSignal("sys"),
+            o_c0_ddr4_ui_clk_sync_rst    = ResetSignal("sys"),
 
             # DRAM pads ----------------------------------------------------------------------------
-            o_c0_ddr4_act_n     = pads.act_n,
-            o_c0_ddr4_adr       = Cat(pads.a, pads.we_n, pads.cas_n, pads.ras_n),
-            o_c0_ddr4_ba        = pads.ba,
-            o_c0_ddr4_bg        = pads.bg,
-            o_c0_ddr4_cke       = pads.cke,
-            o_c0_ddr4_odt       = pads.odt,
-            o_c0_ddr4_cs_n      = pads.cs_n,
-            o_c0_ddr4_ck_t      = pads.clk_p,
-            o_c0_ddr4_ck_c      = pads.clk_n,
-            o_c0_ddr4_reset_n   = pads.reset_n,
-            io_c0_ddr4_dm_dbi_n = pads.dm,
-            io_c0_ddr4_dq       = pads.dq,
-            io_c0_ddr4_dqs_c    = pads.dqs_n,
-            io_c0_ddr4_dqs_t    = pads.dqs_p,
+            o_c0_ddr4_act_n              = pads.act_n,
+            o_c0_ddr4_adr                = Cat(pads.a, pads.we_n, pads.cas_n, pads.ras_n),
+            o_c0_ddr4_ba                 = pads.ba,
+            o_c0_ddr4_bg                 = pads.bg,
+            o_c0_ddr4_cke                = pads.cke,
+            o_c0_ddr4_odt                = pads.odt,
+            o_c0_ddr4_cs_n               = pads.cs_n,
+            o_c0_ddr4_ck_t               = pads.clk_p,
+            o_c0_ddr4_ck_c               = pads.clk_n,
+            o_c0_ddr4_reset_n            = pads.reset_n,
+            io_c0_ddr4_dm_dbi_n          = pads.dm,
+            io_c0_ddr4_dq                = pads.dq,
+            io_c0_ddr4_dqs_c             = pads.dqs_n,
+            io_c0_ddr4_dqs_t             = pads.dqs_p,
 
             # Calibration --------------------------------------------------------------------------
-            o_c0_init_calib_complete = self.init_calib_complete,
+            o_c0_init_calib_complete     = self.init_calib_complete,
 
             # Debug --------------------------------------------------------------------------------
-            #o_dbg_clk=,
+            #o_dbg_clk                   =,
             o_dbg_rd_data_cmp            = self.dbg_rd_data_cmp,
             o_dbg_expected_data          = self.dbg_expected_data,
             o_dbg_cal_seq                = self.dbg_cal_seq,
@@ -171,71 +175,71 @@ class USDDR4MIGPHY(Module, AutoCSR):
             o_cal_post_status            = self.cal_post_status,
 
             # PHY Statics / Optionals --------------------------------------------------------------
-            i_dBufAdr       = 0,           # Reserved, should be tied low
-            o_wrDataAddr    = Signal(5),   # Not used (optional)
-            o_rdDataAddr    = Signal(5),   # Not used (optional)
-            o_per_rd_done   = Signal(),    # Not used (optional)
-            o_rmw_rd_done   = Signal(),    # Not used (optional)
-            i_winInjTxn     = 0,           # Not used (optional)
-            i_winRmw        = 0,           # Not used (optional)
-            i_gt_data_ready = 0,           # Not used (optional)
-            o_dbg_bus       = Signal(512), # Not used (optional)
-            o_tCWL          = self.tCWL,   # tCWL, FIXME: add check with internal tCWL
-            i_winRank       = 0,           # Tied to 0 for single-rank systems, FIXME for dual-rank
-            i_winBuf        = 0,           # Not used (optional)
+            i_dBufAdr                    = 0,           # Reserved, should be tied low
+            o_wrDataAddr                 = Signal(5),   # Not used (optional)
+            o_rdDataAddr                 = Signal(5),   # Not used (optional)
+            o_per_rd_done                = Signal(),    # Not used (optional)
+            o_rmw_rd_done                = Signal(),    # Not used (optional)
+            i_winInjTxn                  = 0,           # Not used (optional)
+            i_winRmw                     = 0,           # Not used (optional)
+            i_gt_data_ready              = 0,           # Not used (optional)
+            o_dbg_bus                    = Signal(512), # Not used (optional)
+            o_tCWL                       = self.tCWL,   # tCWL, FIXME: add check with internal tCWL
+            i_winRank                    = 0,           # Tied to 0 for single-rank systems, FIXME for dual-rank
+            i_winBuf                     = 0,           # Not used (optional)
 
             # PHY Commands -------------------------------------------------------------------------
-            i_mc_ACT_n  = Cat(
+            i_mc_ACT_n                   = Cat(
                 dfi.phases[0].act_n, dfi.phases[0].act_n,
                 dfi.phases[1].act_n, dfi.phases[1].act_n,
                 dfi.phases[2].act_n, dfi.phases[2].act_n,
                 dfi.phases[3].act_n, dfi.phases[3].act_n),
-            i_mc_ADR    = Cat(Cat(
+            i_mc_ADR                     = Cat(Cat(
                 dfi.phases[0].address[i], dfi.phases[0].address[i],
                 dfi.phases[1].address[i], dfi.phases[1].address[i],
                 dfi.phases[2].address[i], dfi.phases[2].address[i],
                 dfi.phases[3].address[i], dfi.phases[3].address[i])
                 for i in range(addressbits)),
-            i_mc_BA     = Cat(Cat(
+            i_mc_BA                      = Cat(Cat(
                 dfi.phases[0].bank[i], dfi.phases[0].bank[i],
                 dfi.phases[1].bank[i], dfi.phases[1].bank[i],
                 dfi.phases[2].bank[i], dfi.phases[2].bank[i],
                 dfi.phases[3].bank[i], dfi.phases[3].bank[i])
                 for i in range(len(pads.ba))),
-            i_mc_BG     = Cat(Cat(
+            i_mc_BG                      = Cat(Cat(
                 dfi.phases[0].bank[i], dfi.phases[0].bank[i],
                 dfi.phases[1].bank[i], dfi.phases[1].bank[i],
                 dfi.phases[2].bank[i], dfi.phases[2].bank[i],
                 dfi.phases[3].bank[i], dfi.phases[3].bank[i])
                 for i in range(len(pads.ba), len(pads.ba) + len(pads.bg))),
-            i_mc_CS_n   = Cat(
+            i_mc_CS_n                    = Cat(
                 dfi.phases[0].cs_n, dfi.phases[0].cs_n,
                 dfi.phases[1].cs_n, dfi.phases[1].cs_n,
                 dfi.phases[2].cs_n, dfi.phases[2].cs_n,
                 dfi.phases[3].cs_n, dfi.phases[3].cs_n),
-            i_mc_ODT    = Cat(
+            i_mc_ODT                     = Cat(
                 dfi.phases[0].odt, dfi.phases[0].odt,
                 dfi.phases[1].odt, dfi.phases[1].odt,
                 dfi.phases[2].odt, dfi.phases[2].odt,
                 dfi.phases[3].odt, dfi.phases[3].odt),
-            i_mc_CKE    = Cat(
+            i_mc_CKE                     = Cat(
                 dfi.phases[0].cke, dfi.phases[0].cke,
                 dfi.phases[1].cke, dfi.phases[1].cke,
                 dfi.phases[2].cke, dfi.phases[2].cke,
                 dfi.phases[3].cke, dfi.phases[3].cke),
-            i_mcCasSlot  = mc_cas_slot,
-            i_mcCasSlot2 = mc_cas_slot[1],
-            i_mcRdCAS    = mc_rd_cas,
-            i_mcWrCAS    = mc_wr_cas,
+            i_mcCasSlot                  = mc_cas_slot,
+            i_mcCasSlot2                 = mc_cas_slot[1],
+            i_mcRdCAS                    = mc_rd_cas,
+            i_mcWrCAS                    = mc_wr_cas,
 
             # PHY Writes ---------------------------------------------------------------------------
-            i_wrData     = wr_data,
-            i_wrDataMask = wr_data_mask,
-            o_wrDataEn   = wr_data_en,
+            i_wrData                     = wr_data,
+            i_wrDataMask                 = wr_data_mask,
+            o_wrDataEn                   = wr_data_en,
 
             # PHY Reads ----------------------------------------------------------------------------
-            o_rdData   = rd_data,
-            o_rdDataEn = rd_data_en,
+            o_rdData                     = rd_data,
+            o_rdDataEn                   = rd_data_en,
         )
         if use_dcp:
             platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
@@ -263,12 +267,12 @@ class USDDR4MIGPHY(Module, AutoCSR):
             _rd_data.eq(rd_data),
         ]
 
+
         self.mc_rd_cas      = mc_rd_cas
         self.mc_wr_cas      = mc_wr_cas
         self.mc_cas_slot    = mc_cas_slot
         self.wr_data        = _wr_data
         self.wr_data_en     = wr_data_en
-        self.wr_data_mask   = wr_data_mask
         self.rd_data        = _rd_data
         self.rd_data_en     = rd_data_en
 
