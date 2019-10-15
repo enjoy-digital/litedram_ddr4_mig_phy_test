@@ -10,7 +10,6 @@ from migen.genlib.io import CRG
 
 import kcu105_platform as kcu105
 
-from litex.soc.cores.frequency_meter import FrequencyMeter
 from litex.soc.cores.uart import UARTWishboneBridge
 
 from litex.soc.integration.soc_sdram import SoCSDRAM
