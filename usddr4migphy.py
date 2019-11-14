@@ -296,10 +296,12 @@ class USDDR4MIGPHY(Module, AutoCSR):
         self.comb += wrdata_en.eq(last_wrdata_en[cwl_sys_latency])
 
         # Debug ------------------------------------------------------------------------------------
-        _wr_data = Signal(8)
-        _rd_data = Signal(8)
+        _wr_data      = Signal(64)
+        _wr_data_mask = Signal(8)
+        _rd_data      = Signal(64)
         self.comb += [
             _wr_data.eq(wr_data),
+            _wr_data_mask.eq(wr_data_mask),
             _rd_data.eq(rd_data),
         ]
 
@@ -307,6 +309,7 @@ class USDDR4MIGPHY(Module, AutoCSR):
         self.mc_rd_cas      = mc_rd_cas
         self.mc_wr_cas      = mc_wr_cas
         self.mc_cas_slot    = mc_cas_slot
+        self.wr_data_mask   = _wr_data_mask
         self.wr_data        = _wr_data
         self.wr_data_en     = wr_data_en
         self.rd_data        = _rd_data

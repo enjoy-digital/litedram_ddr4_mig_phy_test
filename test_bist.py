@@ -152,11 +152,12 @@ class BIST:
                 8*read_speed/gB,
                 tested_length//mB,
                 tested_errors))
+            #exit()
 
             offset += increment
 
 bist = BIST(Generator("sdram_generator"), Checker("sdram_checker"))
-bist.test(0x00000000, 1024*mB, 32*mB, True)
+bist.test(0x00000000, 2048*mB, 0, False)
 
 # # #
 

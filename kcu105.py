@@ -30,7 +30,7 @@ class DDR4TestSoC(SoCSDRAM):
         sys_clk_freq = int(200e6)
         platform = kcu105.Platform()
         SoCSDRAM.__init__(self, platform, clk_freq=sys_clk_freq,
-            cpu_type=None, with_uart=False, l2_size=128,
+            cpu_type=None, with_uart=False, l2_size=256,
             ident="DDR4TestSoC", ident_version=True,)
 
         # CRG --------------------------------------------------------------------------------------
@@ -63,51 +63,25 @@ class DDR4TestSoC(SoCSDRAM):
         self.comb += platform.request("user_led", 0).eq(ddr4_phy.init_calib_complete)
 
         # Analyzer ---------------------------------------------------------------------------------
-        sdram_generator_port_wdata_data = Signal(8)
-        self.comb += sdram_generator_port_wdata_data.eq(sdram_generator_port.wdata.data)
-        sdram_checker_port_rdata_data = Signal(8)
-        self.comb += sdram_checker_port_rdata_data.eq(sdram_checker_port.rdata.data)
         if with_analyzer:
             analyzer_signals = [
                 ddr4_phy.init_calib_complete,
                 ddr4_phy.mc_rd_cas,
                 ddr4_phy.mc_wr_cas,
                 ddr4_phy.mc_cas_slot,
-                ddr4_phy.wr_data,
+                #ddr4_phy.wr_data,
+                #ddr4_phy.wr_data_mask,
                 ddr4_phy.wr_data_en,
-                ddr4_phy.rd_data,
+                #ddr4_phy.rd_data,
                 ddr4_phy.rd_data_en,
                 ddr4_phy.core_rddata_en,
                 ddr4_phy.core_wrdata_en,
-
-#                ddr4_phy.dfi.phases[0].ras_n,
-#                ddr4_phy.dfi.phases[1].ras_n,
-#                ddr4_phy.dfi.phases[2].ras_n,
-#                ddr4_phy.dfi.phases[3].ras_n,
-#                ddr4_phy.dfi.phases[0].cas_n,
-#                ddr4_phy.dfi.phases[1].cas_n,
-#                ddr4_phy.dfi.phases[2].cas_n,
-#                ddr4_phy.dfi.phases[3].cas_n,
-#                ddr4_phy.dfi.phases[0].we_n,
-#                ddr4_phy.dfi.phases[1].we_n,
-#                ddr4_phy.dfi.phases[2].we_n,
-#                ddr4_phy.dfi.phases[3].we_n,
-#                ddr4_phy.dfi.phases[0].cs_n,
-#                ddr4_phy.dfi.phases[1].cs_n,
-#                ddr4_phy.dfi.phases[2].cs_n,
-#                ddr4_phy.dfi.phases[3].cs_n,
-
-                sdram_generator_port.cmd.valid,
-                sdram_generator_port.cmd.ready,
-                sdram_generator_port.wdata.valid,
-                sdram_generator_port.wdata.ready,
-                sdram_generator_port_wdata_data,
-
-                sdram_checker_port.cmd.valid,
-                sdram_checker_port.cmd.ready,
-                sdram_checker_port.rdata.valid,
-                sdram_checker_port.rdata.ready,
-                sdram_checker_port_rdata_data,
+                ddr4_phy.dfi.phases[0].address,
+                ddr4_phy.dfi.phases[1].address,
+                ddr4_phy.dfi.phases[2].address,
+                ddr4_phy.dfi.phases[3].address,
+                ddr4_phy.dfi.phases[0].wrdata,
+                ddr4_phy.dfi.phases[0].rddata,
             ]
             self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 512, csr_csv="analyzer.csv")
             self.add_csr("analyzer")

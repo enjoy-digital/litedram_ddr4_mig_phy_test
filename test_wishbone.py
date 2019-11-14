@@ -61,11 +61,11 @@ def dump(offset, length):
     for i in range(length):
         data = wb.read(wb.mems.main_ram.base + offset + 4*i)
         print("0x{:08x} ".format(data), end="")
-        if (i%7) == 0:
+        if (i%8) == 7:
             print("")
 
 offset = 0
-dump(0, 1024)
+dump(0, 65536)
 #errors = check_pattern(64, offset=offset, debug=True)
 #print("{} errors".format(errors))
 

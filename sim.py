@@ -112,8 +112,8 @@ class SimSoC(SoCSDRAM):
                             sdram_module.geom_settings,
                             sdram_module.timing_settings,
                             main_ram_size_limit=0x40000000)
-        self.add_constant("MEMTEST_DATA_SIZE", 8*1024)
-        self.add_constant("MEMTEST_ADDR_SIZE", 8*1024)
+        self.add_constant("MEMTEST_DATA_SIZE", 1024)
+        self.add_constant("MEMTEST_ADDR_SIZE", 1024)
 
 # Build --------------------------------------------------------------------------------------------
 
