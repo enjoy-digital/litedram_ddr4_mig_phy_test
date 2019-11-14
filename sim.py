@@ -3,6 +3,8 @@
 # This file is Copyright (c) 2019 Florent Kermarrec <florent@enjoy-digital.fr>
 # License: BSD
 
+# ./sim.py --trace --trace-start=1000000
+
 import argparse
 
 from migen import *
@@ -100,7 +102,8 @@ class SimSoC(SoCSDRAM):
         self.add_interrupt("uart")
 
         # DDR4 PHY ---------------------------------------------------------------------------------
-        self.submodules.ddr4_phy = ddr4_phy = USDDR4MIGPHY(platform, platform.request("ddram"))
+        self.submodules.ddr4_phy = ddr4_phy = USDDR4MIGPHY(platform, platform.request("ddram"),
+            simulation=True)
         self.add_csr("ddr4_phy")
 
         # SDRAM ------------------------------------------------------------------------------------

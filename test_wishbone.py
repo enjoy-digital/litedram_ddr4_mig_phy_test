@@ -58,8 +58,9 @@ def check_pattern(length, offset=0, debug=False):
     return errors
 
 offset = 1024*1024
-write_pattern(64, offset=offset)
-errors = check_pattern(32, offset=offset, debug=True)
+offset = 1024*1024
+write_pattern(128, offset=offset)
+errors = check_pattern(65536, offset=offset, debug=True)
 print("{} errors".format(errors))
 
 # # #

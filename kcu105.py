@@ -46,7 +46,10 @@ class DDR4TestSoC(SoCSDRAM):
 
         # DDR4 Core --------------------------------------------------------------------------------
         sdram_module = EDY4016A(sys_clk_freq, "1:4")
-        self.register_sdram(self.ddr4_phy, sdram_module.geom_settings, sdram_module.timing_settings)
+        self.register_sdram(ddr4_phy,
+                            sdram_module.geom_settings,
+                            sdram_module.timing_settings,
+                            main_ram_size_limit=0x40000000)
 
         # DDR4 BIST
         sdram_generator_port = self.sdram.crossbar.get_port()
