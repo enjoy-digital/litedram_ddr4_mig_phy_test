@@ -17,10 +17,9 @@ from litex.soc.integration.soc_sdram import *
 from litex.soc.integration.builder import *
 from litex.soc.cores import uart
 
-from litedram.common import PhySettings
-from litedram.modules import MT48LC16M16
-from litedram.phy.model import SDRAMPHYModel
+from litedram.modules import EDY4016A
 
+from usddr4migphy import USDDR4MIGPHY
 
 # IOs ----------------------------------------------------------------------------------------------
 
@@ -40,6 +39,30 @@ _io = [
         Subsignal("sink_ready",   SimPins()),
         Subsignal("sink_data",    SimPins(8)),
     ),
+
+    ("ddram", 0,
+        Subsignal("a",       SimPins(14)),
+        Subsignal("ba",      SimPins(2)),
+        Subsignal("bg",      SimPins(1)),
+        Subsignal("ras_n",   SimPins(1)),
+        Subsignal("cas_n",   SimPins(1)),
+        Subsignal("we_n",    SimPins(1)),
+        Subsignal("cs_n",    SimPins(1)),
+        Subsignal("act_n",   SimPins(1)),
+        Subsignal("ten",     SimPins(1)),
+        Subsignal("alert_n", SimPins(1)),
+        Subsignal("par",     SimPins(1)),
+        Subsignal("dm",      SimPins(8)),
+        Subsignal("dq",      SimPins(64)),
+        Subsignal("dqs_p",   SimPins(8)),
+        Subsignal("dqs_n",   SimPins(8)),
+        Subsignal("clk_p",   SimPins(1)),
+        Subsignal("clk_n",   SimPins(1)),
+        Subsignal("cke",     SimPins(1)),
+        Subsignal("odt",     SimPins(1)),
+        Subsignal("reset_n", SimPins(1)),
+        Misc("SLEW=FAST"),
+    ),
 ]
 
 # Platform -----------------------------------------------------------------------------------------
@@ -57,7 +80,7 @@ class Platform(SimPlatform):
 # Simulation SoC -----------------------------------------------------------------------------------
 
 class SimSoC(SoCSDRAM):
-    def __init__(self, with_sdram=True, **kwargs):
+    def __init__(self, **kwargs):
         platform     = Platform()
         sys_clk_freq = int(1e6)
 
@@ -76,30 +99,18 @@ class SimSoC(SoCSDRAM):
         self.add_csr("uart")
         self.add_interrupt("uart")
 
+        # DDR4 PHY ---------------------------------------------------------------------------------
+        self.submodules.ddr4_phy = ddr4_phy = USDDR4MIGPHY(platform, platform.request("ddram"))
+        self.add_csr("ddr4_phy")
+
         # SDRAM ------------------------------------------------------------------------------------
-        if with_sdram:
-            sdram_module =  MT48LC16M16(100e6, "1:1") # use 100MHz timings
-            phy_settings = PhySettings(
-                memtype       = "SDR",
-                databits      = 32,
-                dfi_databits  = 16,
-                nphases       = 1,
-                rdphase       = 0,
-                wrphase       = 0,
-                rdcmdphase    = 0,
-                wrcmdphase    = 0,
-                cl            = 2,
-                read_latency  = 4,
-                write_latency = 0
-            )
-            self.submodules.sdrphy = SDRAMPHYModel(sdram_module, phy_settings)
-            self.register_sdram(
-                self.sdrphy,
-                sdram_module.geom_settings,
-                sdram_module.timing_settings)
-            # Reduce memtest size for simulation speedup
-            self.add_constant("MEMTEST_DATA_SIZE", 8*1024)
-            self.add_constant("MEMTEST_ADDR_SIZE", 8*1024)
+        sdram_module = EDY4016A(sys_clk_freq, "1:4")
+        self.register_sdram(ddr4_phy,
+                            sdram_module.geom_settings,
+                            sdram_module.timing_settings,
+                            main_ram_size_limit=0x40000000)
+        self.add_constant("MEMTEST_DATA_SIZE", 8*1024)
+        self.add_constant("MEMTEST_ADDR_SIZE", 8*1024)
 
 # Build --------------------------------------------------------------------------------------------
 
@@ -115,7 +126,7 @@ def main():
                         help="cycle to start VCD tracing")
     parser.add_argument("--trace-end", default=-1,
                         help="cycle to end VCD tracing")
-    parser.add_argument("--opt-level", default="O3",
+    parser.add_argument("--opt-level", default="O0",
                         help="compilation optimization level")
     args = parser.parse_args()
 
