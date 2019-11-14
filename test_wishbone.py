@@ -57,11 +57,17 @@ def check_pattern(length, offset=0, debug=False):
         errors += error
     return errors
 
-offset = 1024*1024
-offset = 1024*1024
-write_pattern(128, offset=offset)
-errors = check_pattern(65536, offset=offset, debug=True)
-print("{} errors".format(errors))
+def dump(offset, length):
+    for i in range(length):
+        data = wb.read(wb.mems.main_ram.base + offset + 4*i)
+        print("0x{:08x} ".format(data), end="")
+        if (i%7) == 0:
+            print("")
+
+offset = 0
+dump(0, 1024)
+#errors = check_pattern(64, offset=offset, debug=True)
+#print("{} errors".format(errors))
 
 # # #
 

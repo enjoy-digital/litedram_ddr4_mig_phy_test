@@ -59,7 +59,7 @@ class USDDR4MIGPHY(Module, AutoCSR):
         assert rdphase%2 == 0 # MIG only supports command on even slots.
         assert wrphase%2 == 0
 
-        #cwl_sys_latency = cwl_sys_latency - 2 # FIXME
+        cwl_sys_latency = cwl_sys_latency - 2 # FIXME
         self.settings = PhySettings(
             memtype       = "DDR4",
             databits      = databits,
@@ -81,14 +81,76 @@ class USDDR4MIGPHY(Module, AutoCSR):
         dfi = Interface(addressbits, bankbits, nranks, 2*databits, nphases)
         self.submodules += DDR4DFIMux(self.dfi, dfi)
 
+        # DFI to MC --------------------------------------------------------------------------------
         mc_rd_cas   = Signal()
         mc_wr_cas   = Signal()
         mc_cas_slot = Signal(2)
-        print(rdcmdphase)
-        print(rdphase)
-        print(wrcmdphase)
-        print(wrphase)
-        print(addressbits)
+        mc_act_n    = Signal(8)
+        mc_adr      = Signal(8*addressbits)
+        mc_ba       = Signal(8*len(pads.ba))
+        mc_bg       = Signal(8*len(pads.bg))
+        mc_cs_n     = Signal(8)
+        mc_odt      = Signal(8)
+        mc_cke      = Signal(8)
+        self.comb += [
+            # mc_act_n -----------------------------------------------------------------------------
+            mc_act_n.eq(Cat(
+                dfi.phases[0].act_n, dfi.phases[0].act_n,
+                dfi.phases[1].act_n, dfi.phases[1].act_n,
+                dfi.phases[2].act_n, dfi.phases[2].act_n,
+                dfi.phases[3].act_n, dfi.phases[3].act_n)),
+            # mc_adr -------------------------------------------------------------------------------
+            mc_adr.eq(Cat(
+                (Cat(dfi.phases[0].address[i], dfi.phases[0].address[i],
+                     dfi.phases[1].address[i], dfi.phases[1].address[i],
+                     dfi.phases[2].address[i], dfi.phases[2].address[i],
+                     dfi.phases[3].address[i], dfi.phases[3].address[i])
+                    for i in range(addressbits-3)),
+                Cat(dfi.phases[0].we_n, dfi.phases[0].we_n,
+                    dfi.phases[1].we_n, dfi.phases[1].we_n,
+                    dfi.phases[2].we_n, dfi.phases[2].we_n,
+                    dfi.phases[3].we_n, dfi.phases[3].we_n),
+                Cat(dfi.phases[0].cas_n, dfi.phases[0].cas_n,
+                    dfi.phases[1].cas_n, dfi.phases[1].cas_n,
+                    dfi.phases[2].cas_n, dfi.phases[2].cas_n,
+                    dfi.phases[3].cas_n, dfi.phases[3].cas_n),
+                Cat(dfi.phases[0].ras_n, dfi.phases[0].ras_n,
+                    dfi.phases[1].ras_n, dfi.phases[1].ras_n,
+                    dfi.phases[2].ras_n, dfi.phases[2].ras_n,
+                    dfi.phases[3].ras_n, dfi.phases[3].ras_n))),
+            # mc_ba --------------------------------------------------------------------------------
+            mc_ba.eq(Cat(Cat(
+                dfi.phases[0].bank[i], dfi.phases[0].bank[i],
+                dfi.phases[1].bank[i], dfi.phases[1].bank[i],
+                dfi.phases[2].bank[i], dfi.phases[2].bank[i],
+                dfi.phases[3].bank[i], dfi.phases[3].bank[i])
+                for i in range(len(pads.ba)))),
+            # mc_bg --------------------------------------------------------------------------------
+            mc_bg.eq(Cat(Cat(
+                dfi.phases[0].bank[i], dfi.phases[0].bank[i],
+                dfi.phases[1].bank[i], dfi.phases[1].bank[i],
+                dfi.phases[2].bank[i], dfi.phases[2].bank[i],
+                dfi.phases[3].bank[i], dfi.phases[3].bank[i])
+                for i in range(len(pads.ba), len(pads.ba) + len(pads.bg)))),
+            # mc_cs_n ------------------------------------------------------------------------------
+            mc_cs_n.eq(Cat(
+                dfi.phases[0].cs_n, dfi.phases[0].cs_n,
+                dfi.phases[1].cs_n, dfi.phases[1].cs_n,
+                dfi.phases[2].cs_n, dfi.phases[2].cs_n,
+                dfi.phases[3].cs_n, dfi.phases[3].cs_n)),
+            # mc_odt -------------------------------------------------------------------------------
+            mc_odt.eq(Cat(
+                dfi.phases[0].odt, dfi.phases[0].odt,
+                dfi.phases[1].odt, dfi.phases[1].odt,
+                dfi.phases[2].odt, dfi.phases[2].odt,
+                dfi.phases[3].odt, dfi.phases[3].odt)),
+            # mc_cke -------------------------------------------------------------------------------
+            mc_cke.eq(Cat(
+                dfi.phases[0].cke, dfi.phases[0].cke,
+                dfi.phases[1].cke, dfi.phases[1].cke,
+                dfi.phases[2].cke, dfi.phases[2].cke,
+                dfi.phases[3].cke, dfi.phases[3].cke)),
+        ]
         self.comb += [
             If(self.init_calib_complete,
                 # Set mc_rd_cas if a read command on the bus
@@ -99,27 +161,31 @@ class USDDR4MIGPHY(Module, AutoCSR):
                 If(mc_wr_cas, mc_cas_slot.eq(wrphase)),
             )
         ]
+
+        # DFI to Read/Write Data -------------------------------------------------------------------
         wr_data      = Signal(databits*8)
-        wr_data_mask = Signal(databits)
+        wr_data_mask = Signal(databits//8*8)
         wr_data_en   = Signal()
         rd_data      = Signal(databits*8)
         self.comb += [
-            #wr_data.eq(Cat(Cat(
-            #    dfi.phases[0].wrdata[i], dfi.phases[0].wrdata[databits+i],
-            #    dfi.phases[1].wrdata[i], dfi.phases[1].wrdata[databits+i],
-            #    dfi.phases[2].wrdata[i], dfi.phases[2].wrdata[databits+i],
-            #    dfi.phases[3].wrdata[i], dfi.phases[3].wrdata[databits+i]) for i in range(databits))),
-            wr_data.eq(0x12345678),
+            wr_data.eq(Cat(Cat(
+                dfi.phases[0].wrdata[i], dfi.phases[0].wrdata[databits+i],
+                dfi.phases[1].wrdata[i], dfi.phases[1].wrdata[databits+i],
+                dfi.phases[2].wrdata[i], dfi.phases[2].wrdata[databits+i],
+                dfi.phases[3].wrdata[i], dfi.phases[3].wrdata[databits+i])
+                for i in range(databits))),
             wr_data_mask.eq(Cat(Cat(
                 dfi.phases[0].wrdata_mask[i], dfi.phases[0].wrdata_mask[databits//8+i],
                 dfi.phases[1].wrdata_mask[i], dfi.phases[1].wrdata_mask[databits//8+i],
                 dfi.phases[2].wrdata_mask[i], dfi.phases[2].wrdata_mask[databits//8+i],
-                dfi.phases[3].wrdata_mask[i], dfi.phases[3].wrdata_mask[databits//8+i]) for i in range(databits//8))),
+                dfi.phases[3].wrdata_mask[i], dfi.phases[3].wrdata_mask[databits//8+i])
+                for i in range(databits//8))),
             Cat(Cat(
                 dfi.phases[0].rddata[i], dfi.phases[0].rddata[databits+i],
                 dfi.phases[1].rddata[i], dfi.phases[1].rddata[databits+i],
                 dfi.phases[2].rddata[i], dfi.phases[2].rddata[databits+i],
-                dfi.phases[3].rddata[i], dfi.phases[3].rddata[databits+i]) for i in range(databits)).eq(rd_data)
+                dfi.phases[3].rddata[i], dfi.phases[3].rddata[databits+i])
+                for i in range(databits)).eq(rd_data)
         ]
         rd_data_en = Signal() # FIXME: use
 
@@ -190,59 +256,13 @@ class USDDR4MIGPHY(Module, AutoCSR):
                 i_winBuf                     = 0,           # Not used (optional)
 
                 # PHY Commands -------------------------------------------------------------------------
-                i_mc_ACT_n                   = Cat(
-                    dfi.phases[0].act_n, dfi.phases[0].act_n,
-                    dfi.phases[1].act_n, dfi.phases[1].act_n,
-                    dfi.phases[2].act_n, dfi.phases[2].act_n,
-                    dfi.phases[3].act_n, dfi.phases[3].act_n),
-                i_mc_ADR                     = Cat((Cat(
-                    dfi.phases[0].address[i], dfi.phases[0].address[i],
-                    dfi.phases[1].address[i], dfi.phases[1].address[i],
-                    dfi.phases[2].address[i], dfi.phases[2].address[i],
-                    dfi.phases[3].address[i], dfi.phases[3].address[i])
-                    for i in range(addressbits-3)),
-                    Cat(
-                    dfi.phases[0].we_n, dfi.phases[0].we_n,
-                    dfi.phases[1].we_n, dfi.phases[1].we_n,
-                    dfi.phases[2].we_n, dfi.phases[2].we_n,
-                    dfi.phases[3].we_n, dfi.phases[3].we_n),
-                    Cat(
-                    dfi.phases[0].cas_n, dfi.phases[0].cas_n,
-                    dfi.phases[1].cas_n, dfi.phases[1].cas_n,
-                    dfi.phases[2].cas_n, dfi.phases[2].cas_n,
-                    dfi.phases[3].cas_n, dfi.phases[3].cas_n),
-                    Cat(
-                    dfi.phases[0].ras_n, dfi.phases[0].ras_n,
-                    dfi.phases[1].ras_n, dfi.phases[1].ras_n,
-                    dfi.phases[2].ras_n, dfi.phases[2].ras_n,
-                    dfi.phases[3].ras_n, dfi.phases[3].ras_n)),
-                i_mc_BA                      = Cat(Cat(
-                    dfi.phases[0].bank[i], dfi.phases[0].bank[i],
-                    dfi.phases[1].bank[i], dfi.phases[1].bank[i],
-                    dfi.phases[2].bank[i], dfi.phases[2].bank[i],
-                    dfi.phases[3].bank[i], dfi.phases[3].bank[i])
-                    for i in range(len(pads.ba))),
-                i_mc_BG                      = Cat(Cat(
-                    dfi.phases[0].bank[i], dfi.phases[0].bank[i],
-                    dfi.phases[1].bank[i], dfi.phases[1].bank[i],
-                    dfi.phases[2].bank[i], dfi.phases[2].bank[i],
-                    dfi.phases[3].bank[i], dfi.phases[3].bank[i])
-                    for i in range(len(pads.ba), len(pads.ba) + len(pads.bg))),
-                i_mc_CS_n                    = Cat(
-                    dfi.phases[0].cs_n, dfi.phases[0].cs_n,
-                    dfi.phases[1].cs_n, dfi.phases[1].cs_n,
-                    dfi.phases[2].cs_n, dfi.phases[2].cs_n,
-                    dfi.phases[3].cs_n, dfi.phases[3].cs_n),
-                i_mc_ODT                     = Cat(
-                    dfi.phases[0].odt, dfi.phases[0].odt,
-                    dfi.phases[1].odt, dfi.phases[1].odt,
-                    dfi.phases[2].odt, dfi.phases[2].odt,
-                    dfi.phases[3].odt, dfi.phases[3].odt),
-                i_mc_CKE                     = Cat(
-                    dfi.phases[0].cke, dfi.phases[0].cke,
-                    dfi.phases[1].cke, dfi.phases[1].cke,
-                    dfi.phases[2].cke, dfi.phases[2].cke,
-                    dfi.phases[3].cke, dfi.phases[3].cke),
+                i_mc_ACT_n                   = mc_act_n,
+                i_mc_ADR                     = mc_adr,
+                i_mc_BA                      = mc_ba,
+                i_mc_BG                      = mc_bg,
+                i_mc_CS_n                    = mc_cs_n,
+                i_mc_ODT                     = mc_odt,
+                i_mc_CKE                     = mc_cke,
                 i_mcCasSlot                  = mc_cas_slot,
                 i_mcCasSlot2                 = mc_cas_slot[1],
                 i_mcRdCAS                    = mc_rd_cas,
@@ -261,69 +281,6 @@ class USDDR4MIGPHY(Module, AutoCSR):
                 platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
             else:
                 platform.add_ip(os.path.join("ip", "ddr4_0", "ddr4_0.xci"))
-        else:
-            mc_act_n = Signal(8)
-            mc_adr   = Signal(8*addressbits)
-            mc_ba    = Signal(8*len(pads.ba))
-            mc_bg    = Signal(8*len(pads.bg))
-            mc_cs_n  = Signal(8)
-            mc_odt   = Signal(8)
-            mc_cke   = Signal(8)
-            self.comb += [
-                mc_act_n.eq(Cat(
-                    dfi.phases[0].act_n, dfi.phases[0].act_n,
-                    dfi.phases[1].act_n, dfi.phases[1].act_n,
-                    dfi.phases[2].act_n, dfi.phases[2].act_n,
-                    dfi.phases[3].act_n, dfi.phases[3].act_n)),
-                mc_adr.eq(Cat((Cat(
-                    dfi.phases[0].address[i], dfi.phases[0].address[i],
-                    dfi.phases[1].address[i], dfi.phases[1].address[i],
-                    dfi.phases[2].address[i], dfi.phases[2].address[i],
-                    dfi.phases[3].address[i], dfi.phases[3].address[i])
-                    for i in range(addressbits-3)),
-                    Cat(
-                    dfi.phases[0].we_n, dfi.phases[0].we_n,
-                    dfi.phases[1].we_n, dfi.phases[1].we_n,
-                    dfi.phases[2].we_n, dfi.phases[2].we_n,
-                    dfi.phases[3].we_n, dfi.phases[3].we_n),
-                    Cat(
-                    dfi.phases[0].cas_n, dfi.phases[0].cas_n,
-                    dfi.phases[1].cas_n, dfi.phases[1].cas_n,
-                    dfi.phases[2].cas_n, dfi.phases[2].cas_n,
-                    dfi.phases[3].cas_n, dfi.phases[3].cas_n),
-                    Cat(
-                    dfi.phases[0].ras_n, dfi.phases[0].ras_n,
-                    dfi.phases[1].ras_n, dfi.phases[1].ras_n,
-                    dfi.phases[2].ras_n, dfi.phases[2].ras_n,
-                    dfi.phases[3].ras_n, dfi.phases[3].ras_n))),
-                mc_ba.eq(Cat(Cat(
-                    dfi.phases[0].bank[i], dfi.phases[0].bank[i],
-                    dfi.phases[1].bank[i], dfi.phases[1].bank[i],
-                    dfi.phases[2].bank[i], dfi.phases[2].bank[i],
-                    dfi.phases[3].bank[i], dfi.phases[3].bank[i])
-                    for i in range(len(pads.ba)))),
-                mc_bg.eq(Cat(Cat(
-                    dfi.phases[0].bank[i], dfi.phases[0].bank[i],
-                    dfi.phases[1].bank[i], dfi.phases[1].bank[i],
-                    dfi.phases[2].bank[i], dfi.phases[2].bank[i],
-                    dfi.phases[3].bank[i], dfi.phases[3].bank[i])
-                    for i in range(len(pads.ba), len(pads.ba) + len(pads.bg)))),
-                mc_cs_n.eq(Cat(
-                    dfi.phases[0].cs_n, dfi.phases[0].cs_n,
-                    dfi.phases[1].cs_n, dfi.phases[1].cs_n,
-                    dfi.phases[2].cs_n, dfi.phases[2].cs_n,
-                    dfi.phases[3].cs_n, dfi.phases[3].cs_n)),
-                mc_odt.eq(Cat(
-                    dfi.phases[0].odt, dfi.phases[0].odt,
-                    dfi.phases[1].odt, dfi.phases[1].odt,
-                    dfi.phases[2].odt, dfi.phases[2].odt,
-                    dfi.phases[3].odt, dfi.phases[3].odt)),
-                mc_cke.eq(Cat(
-                    dfi.phases[0].cke, dfi.phases[0].cke,
-                    dfi.phases[1].cke, dfi.phases[1].cke,
-                    dfi.phases[2].cke, dfi.phases[2].cke,
-                    dfi.phases[3].cke, dfi.phases[3].cke)),
-            ]
 
         # Flow Control (for debug) -----------------------------------------------------------------
         rddata_en = dfi.phases[self.settings.rdphase].rddata_en
