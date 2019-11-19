@@ -65,9 +65,10 @@ def dump(offset, length):
             print("")
 
 offset = 0
-dump(0, 65536)
-#errors = check_pattern(64, offset=offset, debug=True)
-#print("{} errors".format(errors))
+#dump(0, 65536)
+write_pattern(128, offset=offset)
+errors = check_pattern(64, offset=offset, debug=True)
+print("{} errors".format(errors))
 
 # # #
 
