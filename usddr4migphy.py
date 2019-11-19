@@ -19,33 +19,11 @@ class USDDR4MIGPHY(Module, AutoCSR):
         addressbits = len(pads.a) + 3
         bankbits    = len(pads.ba) + len(pads.bg)
         nranks      = 1 if not hasattr(pads, "cs_n") else len(pads.cs_n)
-        databits    = len(pads.dq)
+        #databits    = len(pads.dq)
+        databits    = 8 # FIXME: to ease debug
         nphases     = 4
 
-        self.init_calib_complete        = Signal()
-        self.dbg_rd_data_cmp            = Signal(64)
-        self.dbg_expected_data          = Signal(64)
-        self.dbg_cal_seq                = Signal(3)
-        self.dbg_cal_seq_cnt            = Signal(32)
-        self.dbg_cal_seq_rd_cnt         = Signal(8)
-        self.dbg_rd_valid               = Signal()
-        self.dbg_cmp_byte               = Signal(6)
-        self.dbg_rd_data                = Signal(64)
-        self.dbg_cplx_config            = Signal(16)
-        self.dbg_cplx_status            = Signal(2)
-        self.dbg_io_address             = Signal(28)
-        self.dbg_pllGate                = Signal()
-        self.dbg_phy2clb_fixdly_rdy_low = Signal(20)
-        self.dbg_phy2clb_fixdly_rdy_upp = Signal(20)
-        self.dbg_phy2clb_phy_rdy_low    = Signal(20)
-        self.dbg_phy2clb_phy_rdy_upp    = Signal(20)
-        self.win_status                 = Signal(32)
-        self.cal_r0_status              = Signal(128)
-        self.cal_post_status            = Signal(9)
-        self.tCWL                       = Signal(6)
-
         self.calib_done = CSRStatus()
-        self.comb += self.calib_done.status.eq(self.init_calib_complete)
 
         # # #
 
@@ -54,10 +32,9 @@ class USDDR4MIGPHY(Module, AutoCSR):
         cl_sys_latency  = get_sys_latency(nphases, cl)
         cwl_sys_latency = get_sys_latency(nphases, cwl)
 
+        # MIG only supports commands on even slots.
         rdcmdphase, rdphase = 3, 0
         wrcmdphase, wrphase = 1, 2
-        assert rdphase%2 == 0 # MIG only supports command on even slots.
-        assert wrphase%2 == 0
 
         cwl_sys_latency = cwl_sys_latency - 2 # FIXME
         self.settings = PhySettings(
@@ -152,11 +129,11 @@ class USDDR4MIGPHY(Module, AutoCSR):
                 dfi.phases[3].cke, dfi.phases[3].cke)),
         ]
         self.comb += [
-            If(self.init_calib_complete,
-                # Set mc_rd_cas if a read command on the bus
+            If(self.calib_done.status,
+                # Set mc_rd_cas if a read command is present on the DFI interface
                 mc_rd_cas.eq(dfi.phases[rdphase].rddata_en),
                 If(mc_rd_cas, mc_cas_slot.eq(rdphase)),
-                # Set mc_wr_cas if write command on the bus
+                # Set mc_wr_cas if write command is present on the DFI interface
                 mc_wr_cas.eq(dfi.phases[wrphase].wrdata_en),
                 If(mc_wr_cas, mc_cas_slot.eq(wrphase)),
             )
@@ -194,52 +171,30 @@ class USDDR4MIGPHY(Module, AutoCSR):
             clk300 = platform.request("clk300")
             self.specials += Instance("ddr4_0",
                 # Clk/Rst ------------------------------------------------------------------------------
-                i_sys_rst                    = rst,
-                i_c0_sys_clk_p               = clk300.p,
-                i_c0_sys_clk_n               = clk300.n,
-                o_c0_ddr4_ui_clk             = ClockSignal("sys"),
-                o_c0_ddr4_ui_clk_sync_rst    = ResetSignal("sys"),
+                i_sys_rst                 = rst,
+                i_c0_sys_clk_p            = clk300.p,
+                i_c0_sys_clk_n            = clk300.n,
+                o_c0_ddr4_ui_clk          = ClockSignal("sys"),
+                o_c0_ddr4_ui_clk_sync_rst = ResetSignal("sys"),
 
                 # DRAM pads ----------------------------------------------------------------------------
-                o_c0_ddr4_act_n              = pads.act_n,
-                o_c0_ddr4_adr                = Cat(pads.a, pads.we_n, pads.cas_n, pads.ras_n),
-                o_c0_ddr4_ba                 = pads.ba,
-                o_c0_ddr4_bg                 = pads.bg,
-                o_c0_ddr4_cke                = pads.cke,
-                o_c0_ddr4_odt                = pads.odt,
-                o_c0_ddr4_cs_n               = pads.cs_n,
-                o_c0_ddr4_ck_t               = pads.clk_p,
-                o_c0_ddr4_ck_c               = pads.clk_n,
-                o_c0_ddr4_reset_n            = pads.reset_n,
-                io_c0_ddr4_dm_dbi_n          = pads.dm,
-                io_c0_ddr4_dq                = pads.dq,
-                io_c0_ddr4_dqs_c             = pads.dqs_n,
-                io_c0_ddr4_dqs_t             = pads.dqs_p,
+                o_c0_ddr4_act_n           = pads.act_n,
+                o_c0_ddr4_adr             = Cat(pads.a, pads.we_n, pads.cas_n, pads.ras_n),
+                o_c0_ddr4_ba              = pads.ba,
+                o_c0_ddr4_bg              = pads.bg,
+                o_c0_ddr4_cke             = pads.cke,
+                o_c0_ddr4_odt             = pads.odt,
+                o_c0_ddr4_cs_n            = pads.cs_n,
+                o_c0_ddr4_ck_t            = pads.clk_p,
+                o_c0_ddr4_ck_c            = pads.clk_n,
+                o_c0_ddr4_reset_n         = pads.reset_n,
+                io_c0_ddr4_dm_dbi_n       = pads.dm,
+                io_c0_ddr4_dq             = pads.dq,
+                io_c0_ddr4_dqs_c          = pads.dqs_n,
+                io_c0_ddr4_dqs_t          = pads.dqs_p,
 
                 # Calibration --------------------------------------------------------------------------
-                o_c0_init_calib_complete     = self.init_calib_complete,
-
-                # Debug --------------------------------------------------------------------------------
-                #o_dbg_clk                   =,
-                o_dbg_rd_data_cmp            = self.dbg_rd_data_cmp,
-                o_dbg_expected_data          = self.dbg_expected_data,
-                o_dbg_cal_seq                = self.dbg_cal_seq,
-                o_dbg_cal_seq_cnt            = self.dbg_cal_seq_cnt,
-                o_dbg_cal_seq_rd_cnt         = self.dbg_cal_seq_rd_cnt,
-                o_dbg_rd_valid               = self.dbg_rd_valid,
-                o_dbg_cmp_byte               = self.dbg_cmp_byte,
-                o_dbg_rd_data                = self.dbg_rd_data,
-                o_dbg_cplx_config            = self.dbg_cplx_config,
-                o_dbg_cplx_status            = self.dbg_cplx_status,
-                o_dbg_io_address             = self.dbg_io_address,
-                o_dbg_pllGate                = self.dbg_pllGate,
-                o_dbg_phy2clb_fixdly_rdy_low = self.dbg_phy2clb_fixdly_rdy_low,
-                o_dbg_phy2clb_fixdly_rdy_upp = self.dbg_phy2clb_fixdly_rdy_upp,
-                o_dbg_phy2clb_phy_rdy_low    = self.dbg_phy2clb_phy_rdy_low,
-                o_dbg_phy2clb_phy_rdy_upp    = self.dbg_phy2clb_phy_rdy_upp,
-                o_win_status                 = self.win_status,
-                o_cal_r0_status              = self.cal_r0_status,
-                o_cal_post_status            = self.cal_post_status,
+                o_c0_init_calib_complete  = self.calib_done.status,
 
                 # PHY Statics / Optionals --------------------------------------------------------------
                 i_dBufAdr                    = 0,           # Reserved, should be tied low
@@ -251,31 +206,31 @@ class USDDR4MIGPHY(Module, AutoCSR):
                 i_winRmw                     = 0,           # Not used (optional)
                 i_gt_data_ready              = 0,           # Not used (optional)
                 o_dbg_bus                    = Signal(512), # Not used (optional)
-                o_tCWL                       = self.tCWL,   # tCWL, FIXME: add check with internal tCWL
+                o_tCWL                       = Signal(),    # tCWL, FIXME: add check with internal tCWL
                 i_winRank                    = 0,           # Tied to 0 for single-rank systems, FIXME for dual-rank
                 i_winBuf                     = 0,           # Not used (optional)
 
                 # PHY Commands -------------------------------------------------------------------------
-                i_mc_ACT_n                   = mc_act_n,
-                i_mc_ADR                     = mc_adr,
-                i_mc_BA                      = mc_ba,
-                i_mc_BG                      = mc_bg,
-                i_mc_CS_n                    = mc_cs_n,
-                i_mc_ODT                     = mc_odt,
-                i_mc_CKE                     = mc_cke,
-                i_mcCasSlot                  = mc_cas_slot,
-                i_mcCasSlot2                 = mc_cas_slot[1],
-                i_mcRdCAS                    = mc_rd_cas,
-                i_mcWrCAS                    = mc_wr_cas,
+                i_mc_ACT_n                = mc_act_n,
+                i_mc_ADR                  = mc_adr,
+                i_mc_BA                   = mc_ba,
+                i_mc_BG                   = mc_bg,
+                i_mc_CS_n                 = mc_cs_n,
+                i_mc_ODT                  = mc_odt,
+                i_mc_CKE                  = mc_cke,
+                i_mcCasSlot               = mc_cas_slot,
+                i_mcCasSlot2              = mc_cas_slot[1],
+                i_mcRdCAS                 = mc_rd_cas,
+                i_mcWrCAS                 = mc_wr_cas,
 
                 # PHY Writes ---------------------------------------------------------------------------
-                i_wrData                     = wr_data,
-                i_wrDataMask                 = wr_data_mask,
-                o_wrDataEn                   = wr_data_en,
+                i_wrData                  = wr_data,
+                i_wrDataMask              = wr_data_mask,
+                o_wrDataEn                = wr_data_en,
 
                 # PHY Reads ----------------------------------------------------------------------------
-                o_rdData                     = rd_data,
-                o_rdDataEn                   = rd_data_en,
+                o_rdData                  = rd_data,
+                o_rdDataEn                = rd_data_en,
             )
             if use_dcp:
                 platform.add_source(os.path.join("ip", "ddr4_0", "ddr4_0.dcp"))
@@ -296,23 +251,13 @@ class USDDR4MIGPHY(Module, AutoCSR):
         self.comb += wrdata_en.eq(last_wrdata_en[cwl_sys_latency])
 
         # Debug ------------------------------------------------------------------------------------
-        _wr_data      = Signal(64)
-        _wr_data_mask = Signal(8)
-        _rd_data      = Signal(64)
-        self.comb += [
-            _wr_data.eq(wr_data),
-            _wr_data_mask.eq(wr_data_mask),
-            _rd_data.eq(rd_data),
-        ]
-
-
         self.mc_rd_cas      = mc_rd_cas
         self.mc_wr_cas      = mc_wr_cas
         self.mc_cas_slot    = mc_cas_slot
-        self.wr_data_mask   = _wr_data_mask
-        self.wr_data        = _wr_data
+        self.wr_data_mask   = wr_data_mask
+        self.wr_data        = wr_data
         self.wr_data_en     = wr_data_en
-        self.rd_data        = _rd_data
+        self.rd_data        = rd_data
         self.rd_data_en     = rd_data_en
 
         self.core_rddata_en = rddata_en

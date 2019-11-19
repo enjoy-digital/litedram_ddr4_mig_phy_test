@@ -30,7 +30,7 @@ class DDR4TestSoC(SoCSDRAM):
         sys_clk_freq = int(200e6)
         platform = kcu105.Platform()
         SoCSDRAM.__init__(self, platform, clk_freq=sys_clk_freq,
-            cpu_type=None, with_uart=False, l2_size=256,
+            cpu_type=None, with_uart=False, l2_size=16,
             ident="DDR4TestSoC", ident_version=True,)
 
         # CRG --------------------------------------------------------------------------------------
@@ -60,28 +60,26 @@ class DDR4TestSoC(SoCSDRAM):
         self.add_csr("sdram_checker")
 
         # Leds -------------------------------------------------------------------------------------
-        self.comb += platform.request("user_led", 0).eq(ddr4_phy.init_calib_complete)
+        self.comb += platform.request("user_led", 0).eq(ddr4_phy.calib_done.status)
 
         # Analyzer ---------------------------------------------------------------------------------
         if with_analyzer:
             analyzer_signals = [
-                ddr4_phy.init_calib_complete,
+                ddr4_phy.calib_done.status,
+
+                ddr4_phy.dfi.phases[0],
+                ddr4_phy.dfi.phases[1],
+                ddr4_phy.dfi.phases[2],
+                ddr4_phy.dfi.phases[3],
+
                 ddr4_phy.mc_rd_cas,
                 ddr4_phy.mc_wr_cas,
                 ddr4_phy.mc_cas_slot,
-                #ddr4_phy.wr_data,
-                #ddr4_phy.wr_data_mask,
+                ddr4_phy.wr_data_mask,
+                ddr4_phy.wr_data,
                 ddr4_phy.wr_data_en,
-                #ddr4_phy.rd_data,
+                ddr4_phy.rd_data,
                 ddr4_phy.rd_data_en,
-                ddr4_phy.core_rddata_en,
-                ddr4_phy.core_wrdata_en,
-                ddr4_phy.dfi.phases[0].address,
-                ddr4_phy.dfi.phases[1].address,
-                ddr4_phy.dfi.phases[2].address,
-                ddr4_phy.dfi.phases[3].address,
-                ddr4_phy.dfi.phases[0].wrdata,
-                ddr4_phy.dfi.phases[0].rddata,
             ]
             self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 512, csr_csv="analyzer.csv")
             self.add_csr("analyzer")
