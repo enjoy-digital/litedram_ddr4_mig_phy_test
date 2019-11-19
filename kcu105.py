@@ -29,9 +29,14 @@ class DDR4TestSoC(SoCSDRAM):
     def __init__(self, with_analyzer=True):
         sys_clk_freq = int(200e6)
         platform = kcu105.Platform()
-        SoCSDRAM.__init__(self, platform, clk_freq=sys_clk_freq,
-            cpu_type=None, with_uart=False, l2_size=16,
-            ident="DDR4TestSoC", ident_version=True,)
+        SoCSDRAM.__init__(self, platform,
+            cpu_type       = None,
+            l2_size        = 16,
+            clk_freq       = sys_clk_freq,
+            csr_data_width = 32,
+            with_uart      = False,
+            ident          = "DDR4TestSoC",
+            ident_version  = True)
 
         # CRG --------------------------------------------------------------------------------------
         self.clock_domains.cd_sys = ClockDomain()
@@ -65,13 +70,6 @@ class DDR4TestSoC(SoCSDRAM):
         # Analyzer ---------------------------------------------------------------------------------
         if with_analyzer:
             analyzer_signals = [
-                ddr4_phy.calib_done.status,
-
-                ddr4_phy.dfi.phases[0],
-                ddr4_phy.dfi.phases[1],
-                ddr4_phy.dfi.phases[2],
-                ddr4_phy.dfi.phases[3],
-
                 ddr4_phy.mc_rd_cas,
                 ddr4_phy.mc_wr_cas,
                 ddr4_phy.mc_cas_slot,
@@ -80,6 +78,13 @@ class DDR4TestSoC(SoCSDRAM):
                 ddr4_phy.wr_data_en,
                 ddr4_phy.rd_data,
                 ddr4_phy.rd_data_en,
+
+                ddr4_phy.calib_done.status,
+
+                ddr4_phy.dfi.phases[0],
+                ddr4_phy.dfi.phases[1],
+                ddr4_phy.dfi.phases[2],
+                ddr4_phy.dfi.phases[3],
             ]
             self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 512, csr_csv="analyzer.csv")
             self.add_csr("analyzer")

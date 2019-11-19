@@ -6,7 +6,7 @@ import time
 from litex import RemoteClient
 from litescope import LiteScopeAnalyzerDriver
 
-wb = RemoteClient()
+wb = RemoteClient(debug=False)
 wb.open()
 
 # # #
@@ -46,7 +46,6 @@ elif sys.argv[1] == "now":
     analyzer.configure_trigger(cond={})
 else:
     raise ValueError
-analyzer.configure_trigger(cond={})
 analyzer.run(offset=32, length=length)
 analyzer.wait_done()
 analyzer.upload()
