@@ -138,8 +138,9 @@ class BIST:
             write_speed = self.generator.wait()
 
             # read
-            self.checker.init(base, length, random)
-            read_speed, read_errors = self.checker.wait()
+            #self.checker.init(base, length, random)
+            #read_speed, read_errors = self.checker.wait()
+            read_speed, read_errors = 0, 0
 
             # infos
             if i%10 == 0:

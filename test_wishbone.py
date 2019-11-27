@@ -64,11 +64,17 @@ def dump(offset, length):
         if (i%8) == 7:
             print("")
 
-offset = 0
+#offset = 0
 #dump(0, 65536)
-write_pattern(128, offset=offset)
-errors = check_pattern(64, offset=offset, debug=True)
-print("{} errors".format(errors))
+#write_pattern(128, offset=offset)
+#errors = check_pattern(64, offset=offset, debug=True)
+#print("{} errors".format(errors))
+
+for i in range(128):
+    wb.write(wb.mems.main_ram.base + 4*i, i)
+
+for i in range(128):
+    print("%x" %wb.read(wb.mems.main_ram.base + 4*i))
 
 # # #
 
